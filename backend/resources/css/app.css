@@ -1,0 +1,44 @@
+@import "tailwindcss";
+@import "@stisla/style/theme.css";
+
+@theme {
+  --color-background: oklch(0.9272 0.0116 257.69);
+}
+
+:root {
+  @variant dark {
+    --color-background: oklch(0.08 0 0);
+  }
+}
+
+@import "@stisla/style/components.css";
+
+/* Meridian template styles (ported from /Users/rada/Documents/rotasi/meridian). */
+@import "./meridian/utilities.css";
+@import "./meridian/content.css";
+@import "./meridian/shell.css";
+@import "./meridian/sidebar.css";
+@import "./meridian/page.css";
+@import "./meridian/sticky-bar.css";
+
+@import "./meridian/media.css";
+@import "./meridian/stat.css";
+@import "./meridian/auth.css";
+
+/* Scan the React views for Tailwind utilities. */
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/errors/**/*.blade.php';
+@source '../js/**/*.{jsx,js}';
+
+/* NProgress — align the Inertia top bar with the theme (3px, primary color, soft peg glow). */
+#nprogress .bar {
+    background-color: var(--color-primary) !important;
+    height: 3px !important;
+}
+
+#nprogress .peg {
+    box-shadow:
+        0 0 10px var(--color-primary),
+        0 0 5px var(--color-primary) !important;
+}
