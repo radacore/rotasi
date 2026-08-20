@@ -155,13 +155,12 @@ class PdfLoader {
 
         final page = await appState.document!.getPage(i + 1);
 
-        /// Render at much higher resolution for better quality
+        /// Render resolusi cukup untuk layar (mode satu halaman) agar cepat
         final image = await page.render(
-          width: page.width * 2,
-          height: page.height * 2,
+          width: page.width * 1.5,
+          height: page.height * 1.5,
           format: PdfPageImageFormat.png,
-          quality: 100,
-          forPrint: true,
+          quality: 85,
         );
 
         if (image != null) {

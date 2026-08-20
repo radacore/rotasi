@@ -100,10 +100,14 @@ class BookAnimationController {
       currentPage: appState.currentPage + (swipeLeft ? 1 : -1),
     );
 
+    /// Mulai render halaman berikutnya sejak animasi berjalan
+    /// (fire-and-forget, jangan di-await) supaya tidak ada delay setelah flip.
+    pdfLoader.loadPages(appState.currentPage, null);
+
     /// Run the animation
     await _animationController.forward();
 
-    /// Load new pages and complete the animation
+    /// Fallback bila render di atas belum selesai saat animasi berakhir.
     pdfLoader.loadPages(appState.currentPage, null);
 
     appState.updateMultiple(
