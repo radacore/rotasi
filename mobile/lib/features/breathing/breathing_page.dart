@@ -98,18 +98,12 @@ class _BreathingPageState extends State<BreathingPage> {
         _BreathingState.running => _RunningView(
             remainingText: _remainingText,
             phase: BreathingPhase.phaseAt(_elapsed),
-            phaseFraction: _phaseFraction(),
             phaseRemaining: _phaseRemaining(),
             onStop: _stop,
           ),
         _BreathingState.done => _DoneView(onRestart: _restart),
       },
     );
-  }
-
-  double _phaseFraction() {
-    final phase = BreathingPhase.phaseAt(_elapsed);
-    return BreathingPhase.inPhase(_elapsed) / phase.seconds;
   }
 
   int _phaseRemaining() {
@@ -190,33 +184,80 @@ class _SetupView extends StatelessWidget {
   }
 }
 
-class _RunningView extends StatelessWidget {
+class _RunningView extends StatefulWidget {
   const _RunningView({
     required this.remainingText,
     required this.phase,
-    required this.phaseFraction,
     required this.phaseRemaining,
     required this.onStop,
   });
 
   final String remainingText;
   final BreathingPhase phase;
-  final double phaseFraction;
   final int phaseRemaining;
   final VoidCallback onStop;
 
   @override
+  State<_RunningView> createState() => _RunningViewState();
+}
+
+class _RunningViewState extends State<_RunningView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late BreathingPhase _phase;
+
+  @override
+  void initState() {
+    super.initState();
+    _phase = widget.phase;
+    _controller = AnimationController(vsync: this);
+    _applyPhase(_phase);
+  }
+
+  @override
+  void didUpdateWidget(_RunningView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.phase != oldWidget.phase) {
+      _phase = widget.phase;
+      _applyPhase(_phase);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Menyiapkan animasi lingkaran sesuai fase agar sinkron dengan label:
+  /// membesar selama 4 detik, penuh saat tahan, mengempis selama 6 detik.
+  void _applyPhase(BreathingPhase phase) {
+    switch (phase) {
+      case BreathingPhase.inhale:
+        _controller.duration = const Duration(seconds: 4);
+        _controller.forward(from: 0);
+      case BreathingPhase.hold:
+        _controller.stop();
+        _controller.value = 1.0;
+      case BreathingPhase.exhale:
+        _controller.duration = const Duration(seconds: 6);
+        _controller.forward(from: 0);
+    }
+  }
+
+  /// Besaran pertumbuhan lingkaran pada momen ini (0..1).
+  double get _growth => switch (_phase) {
+        BreathingPhase.inhale => _controller.value,
+        BreathingPhase.hold => 1.0,
+        BreathingPhase.exhale => 1 - _controller.value,
+      };
+
+  @override
   Widget build(BuildContext context) {
-    final color = switch (phase) {
+    final color = switch (_phase) {
       BreathingPhase.inhale => AppColors.primaryLight,
       BreathingPhase.hold => AppColors.sun,
       BreathingPhase.exhale => AppColors.accent,
-    };
-    // Lingkaran membesar saat tarik, penuh saat tahan, mengempis saat buang.
-    final growth = switch (phase) {
-      BreathingPhase.inhale => phaseFraction,
-      BreathingPhase.hold => 1.0,
-      BreathingPhase.exhale => 1 - phaseFraction,
     };
     const base = 140.0;
     const maxGrowth = 90.0;
@@ -225,7 +266,7 @@ class _RunningView extends StatelessWidget {
       children: [
         const SizedBox(height: 16),
         Text(
-          remainingText,
+          widget.remainingText,
           style: Theme.of(context)
               .textTheme
               .displaySmall
@@ -236,19 +277,24 @@ class _RunningView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(seconds: 1),
-                  curve: Curves.easeInOut,
-                  width: base + growth * maxGrowth,
-                  height: base + growth * maxGrowth,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color.withValues(alpha: 0.15),
-                    border: Border.all(color: color, width: 3),
-                  ),
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    final size = base + _growth * maxGrowth;
+                    return Container(
+                      width: size,
+                      height: size,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color.withValues(alpha: 0.15),
+                        border: Border.all(color: color, width: 3),
+                      ),
+                      child: child,
+                    );
+                  },
                   child: Center(
                     child: Text(
-                      phase.label,
+                      _phase.label,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -259,7 +305,7 @@ class _RunningView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$phaseRemaining',
+                  '${widget.phaseRemaining}',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: color,
@@ -267,7 +313,7 @@ class _RunningView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  phase.tip,
+                  _phase.tip,
                   textAlign: TextAlign.center,
                   style: Theme.of(context)
                       .textTheme
@@ -281,7 +327,7 @@ class _RunningView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(16),
           child: OutlinedButton.icon(
-            onPressed: onStop,
+            onPressed: widget.onStop,
             icon: const Icon(Icons.stop),
             label: const Text('Selesai'),
           ),
