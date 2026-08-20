@@ -66,8 +66,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _openMore() {
-    Navigator.of(context).push(
+  Future<void> _openMore() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MorePage(
           repository: _repository,
@@ -75,6 +75,9 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+    // Muat ulang profil setelah kembali, agar sapaan ikut terbarui bila diedit.
+    if (!mounted) return;
+    _load();
   }
 
   Future<void> _sync() async {

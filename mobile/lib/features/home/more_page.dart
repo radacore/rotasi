@@ -5,8 +5,8 @@ import '../breathing/breathing_page.dart';
 import '../measurement/bp_repository.dart';
 import '../midwife/midwife_page.dart';
 import '../referral/referral_page.dart';
+import '../registration/data_ibu_page.dart';
 import '../registration/patient_repository.dart';
-import '../registration/registration_page.dart';
 import '../reminder/reminder_page.dart';
 
 /// Halaman "Lainnya" — fitur sekunder yang dikelompokkan per kategori.
@@ -40,10 +40,10 @@ class MorePage extends StatelessWidget {
           _MoreTile(
             icon: Icons.person_outline,
             title: 'Data Ibu',
-            subtitle: 'Kelola profil dan skrining risiko.',
+            subtitle: 'Lihat dan ubah profil serta skrining risiko.',
             onTap: () => _push(
               context,
-              RegistrationPage(
+              DataIbuPage(
                 repository: patientRepository,
                 bpRepository: bpRepo,
               ),
