@@ -4,6 +4,7 @@ import 'core/theme/app_theme.dart';
 import 'core/sync/sync_service.dart';
 import 'features/home/home_shell.dart';
 import 'features/measurement/bp_repository.dart';
+import 'features/midwife/contact_fab.dart';
 import 'features/registration/patient.dart';
 import 'features/registration/patient_repository.dart';
 import 'features/registration/registration_page.dart';
@@ -22,10 +23,23 @@ class RotasiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final fabVisibility = ContactFabVisibility();
     return MaterialApp(
       title: 'ROTASI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      navigatorKey: navigatorKey,
+      navigatorObservers: [fabVisibility],
+      builder: (context, child) => Stack(
+        children: [
+          ?child,
+          ContactFabOverlay(
+            visibility: fabVisibility,
+            navigatorKey: navigatorKey,
+          ),
+        ],
+      ),
       home: StartupGate(
         repository: repository,
         bpRepository: bpRepository,

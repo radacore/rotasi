@@ -162,6 +162,23 @@ void main() {
 
       expect(find.text('Skrining Risiko Otomatis'), findsNothing);
     });
+
+    testWidgets('beranda menampilkan tombol mengambang Hubungi Bidan',
+        (tester) async {
+      final existing = Patient.newLocal(
+        name: 'Sitti',
+        age: 28,
+        heightCm: 155,
+        weightKg: 52,
+      );
+      await _pumpApp(
+        tester,
+        FakePatientRepository(initial: existing),
+        bpRepo: FakeBpRepository(),
+      );
+
+      expect(find.bySemanticsLabel('Hubungi Bidan'), findsOneWidget);
+    });
   });
 
   group('RegistrationPage', () {
@@ -305,6 +322,9 @@ void main() {
 
   group('TrendPage (FR-05)', () {
     Future<void> pumpTrend(WidgetTester tester, BpRepository bpRepo) async {
+      tester.view.physicalSize = const Size(900, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(home: TrendPage(repository: bpRepo)),
       );
@@ -563,7 +583,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('booklet terunduh -> status tersedia offline + Buka PDF',
+    testWidgets('booklet terunduh -> status tersedia offline + Buka Booklet',
         (tester) async {
       final repo = FakeBookletRepository(
         booklet: Booklet(
@@ -578,12 +598,11 @@ void main() {
       await pumpEdu(tester, repo);
 
       expect(find.text('Panduan Ibu Hamil'), findsOneWidget);
-      expect(find.textContaining('Versi 1.0'), findsOneWidget);
       expect(find.text('Tersedia offline'), findsOneWidget);
-      expect(find.text('Buka PDF'), findsOneWidget);
+      expect(find.text('Buka Booklet'), findsOneWidget);
     });
 
-    testWidgets('versi baru -> tombol Unduh PDF, setelah unduh jadi Buka PDF',
+    testWidgets('versi baru -> tombol Unduh PDF, setelah unduh jadi Buka Booklet',
         (tester) async {
       final repo = FakeBookletRepository(
         booklet: Booklet(
@@ -611,7 +630,7 @@ void main() {
 
       expect(repo.downloadCount, 1);
       expect(find.text('Tersedia offline'), findsOneWidget);
-      expect(find.text('Buka PDF'), findsOneWidget);
+      expect(find.text('Buka Booklet'), findsOneWidget);
     });
 
     testWidgets('tanpa booklet -> ajakan periksa pembaruan', (tester) async {

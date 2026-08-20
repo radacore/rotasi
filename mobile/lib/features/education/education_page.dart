@@ -1,5 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:pdfx/pdfx.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'booklet.dart';
@@ -186,134 +188,184 @@ class _BookletCard extends StatelessWidget {
   final VoidCallback onOpen;
   final Future<void> Function() onRefresh;
 
-  String _formatBytes(int? bytes) {
-    if (bytes == null) return '';
-    if (bytes >= 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    return '${(bytes / 1024).toStringAsFixed(0)} KB';
-  }
-
   @override
   Widget build(BuildContext context) {
     final available = booklet.isDownloaded && !needsDownload;
-    final uploaded = booklet.uploadedAt == null
-        ? ''
-        : DateFormat('dd MMM yyyy').format(booklet.uploadedAt!.toLocal());
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.picture_as_pdf_outlined,
-                    size: 36, color: AppColors.crisis),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        booklet.title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Versi ${booklet.version}'
-                        '${uploaded.isEmpty ? '' : ' · $uploaded'}'
-                        '${_formatBytes(booklet.fileSize).isEmpty ? '' : ' · ${_formatBytes(booklet.fileSize)}'}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
+            _BookletCover(path: available ? booklet.localPath : null),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    booklet.title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  available
-                      ? Icons.offline_pin_outlined
-                      : Icons.download_for_offline_outlined,
-                  color: available
-                      ? AppColors.normal
-                      : AppColors.textSecondary,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  available
-                      ? 'Tersedia offline'
-                      : 'Perlu diunduh agar bisa dibuka offline',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        available
+                            ? Icons.offline_pin_outlined
+                            : Icons.download_for_offline_outlined,
                         color: available
                             ? AppColors.normal
                             : AppColors.textSecondary,
+                        size: 18,
                       ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (downloading)
-              const Row(
-                children: [
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                      const SizedBox(width: 6),
+                      Text(
+                        available
+                            ? 'Tersedia offline'
+                            : 'Perlu diunduh agar bisa dibuka offline',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: available
+                                  ? AppColors.normal
+                                  : AppColors.textSecondary,
+                            ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 8),
-                  Text('Mengunduh PDF…'),
-                ],
-              )
-            else if (available)
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onOpen,
-                      icon: const Icon(Icons.visibility_outlined),
-                      label: const Text('Buka PDF'),
+                  const SizedBox(height: 12),
+                  if (downloading)
+                    const Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Mengunduh PDF…'),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: available
+                              ? ElevatedButton.icon(
+                                  onPressed: onOpen,
+                                  icon: const Icon(Icons.visibility_outlined),
+                                  label: const Text('Buka Booklet'),
+                                )
+                              : OutlinedButton.icon(
+                                  onPressed: onDownload,
+                                  icon: const Icon(Icons.download_outlined),
+                                  label: const Text('Unduh PDF'),
+                                ),
+                        ),
+                        IconButton(
+                          tooltip: 'Periksa pembaruan',
+                          onPressed: onRefresh,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      ],
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Periksa pembaruan',
-                    onPressed: onRefresh,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
-              )
-            else
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onDownload,
-                      icon: const Icon(Icons.download_outlined),
-                      label: const Text('Unduh PDF'),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Periksa pembaruan',
-                    onPressed: onRefresh,
-                    icon: const Icon(Icons.refresh),
-                  ),
                 ],
               ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Sampul booklet = halaman pertama PDF lokal, dirender sebagai pratinjau.
+///
+/// Menampilkan placeholder bila file belum diunduh atau gagal dirender.
+class _BookletCover extends StatefulWidget {
+  const _BookletCover({required this.path});
+
+  final String? path;
+
+  @override
+  State<_BookletCover> createState() => _BookletCoverState();
+}
+
+class _BookletCoverState extends State<_BookletCover> {
+  Uint8List? _bytes;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final path = widget.path;
+    if (path == null) return;
+    try {
+      final doc = await PdfDocument.openFile(path);
+      final page = await doc.getPage(1);
+      final scale = 1.2;
+      final image = await page.render(
+        width: page.width * scale,
+        height: page.height * scale,
+        format: PdfPageImageFormat.png,
+        backgroundColor: '#FFFFFF',
+      );
+      await page.close();
+      await doc.close();
+      if (!mounted) return;
+      setState(() => _bytes = image?.bytes);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _failed = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 96,
+        child: AspectRatio(
+          aspectRatio: 1 / 1.4142,
+          child: bytes == null
+              ? _placeholder(context)
+              : Image.memory(bytes, fit: BoxFit.fill),
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder(BuildContext context) {
+    return Container(
+      color: _failed ? AppColors.neutralLight : AppColors.skyLight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.menu_book_outlined,
+            color: _failed ? AppColors.textSecondary : AppColors.primaryLight,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _failed ? 'Sampul tidak tersedia' : 'Booklet',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: _failed
+                      ? AppColors.textSecondary
+                      : AppColors.primaryLight,
+                ),
+          ),
+        ],
       ),
     );
   }
