@@ -5,8 +5,7 @@ import 'bp_status.dart';
 
 /// Keterangan warna gauge ROTASI (FR-04).
 ///
-/// Empat kotak (HIJAU/KUNING/ORANYE/MERAH) dengan penjelasan dalam bahasa
-/// Indonesia. Kotak status aktif disorot penuh, kotak lain disamarkan.
+/// Hanya menampilkan satu kotak sesuai status aktif [active].
 class StatusExplanation extends StatelessWidget {
   const StatusExplanation({super.key, required this.active});
 
@@ -14,13 +13,52 @@ class StatusExplanation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final entry in _entries) ...[
-          _ExplanationRow(entry: entry, isActive: entry.status == active),
-          if (entry != _entries.last) const SizedBox(height: 10),
+    final entry = _entries.firstWhere((e) => e.status == active);
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: entry.status.color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: entry.status.color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: entry.status.color,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(entry.status.icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.code,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: entry.status.color,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  entry.text,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -32,8 +70,6 @@ class _Explanation {
   final String code;
   final String text;
 }
-
-const _mutedText = Color(0xFF94A3B8);
 
 const _entries = <_Explanation>[
   _Explanation(
@@ -58,57 +94,3 @@ const _entries = <_Explanation>[
   ),
 ];
 
-class _ExplanationRow extends StatelessWidget {
-  const _ExplanationRow({required this.entry, required this.isActive});
-
-  final _Explanation entry;
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = !isActive;
-    final accent = muted ? _mutedText : entry.status.color;
-    final bg = muted ? const Color(0xFFEEEEEE) : entry.status.color;
-    final theme = Theme.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(entry.status.icon, color: Colors.white, size: 24),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                entry.code,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                entry.text,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: muted
-                      ? _mutedText
-                      : AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}

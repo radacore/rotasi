@@ -44,7 +44,7 @@ const _sectors = <_Sector>[
   _Sector(BpStatus.normal, 'NORMAL', '<120/80', Icons.person),
   _Sector(BpStatus.elevated, 'WASPADA', '120-129/<80', Icons.warning_amber_rounded),
   _Sector(BpStatus.stage1, 'BERISIKO', '130-139/80-89', Icons.favorite),
-  _Sector(BpStatus.crisis, 'BAHAYA', '>=140/>90', Icons.monitor_weight_outlined),
+  _Sector(BpStatus.crisis, 'BAHAYA', '>=140/>90', Icons.local_hospital),
 ];
 
 const _startAngles = <double>[
@@ -142,12 +142,12 @@ class _GaugePainter extends CustomPainter {
         ..color = AppColors.white,
     );
 
-    // Jarum penunjuk menuju tengah sektor aktif.
+    // Jarum penunjuk menuju tengah sektor aktif (setengah jari-jari).
     final activeMid = _startAngles[status.index] + _sweep / 2;
     final dir = Offset(math.cos(activeMid), math.sin(activeMid));
     final perp = Offset(-dir.dy, dir.dx);
     final base = center + dir * (radius * 0.16);
-    final tip = center + dir * (radius * 0.86);
+    final tip = center + dir * (radius * 0.5);
     final baseHalf = perp * (radius * 0.07);
 
     final needle = Path()

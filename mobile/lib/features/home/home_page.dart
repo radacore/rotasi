@@ -115,37 +115,25 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text.rich(
-                    TextSpan(
-                      text: 'Halo, ',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                      children: [
-                        TextSpan(
-                          text: '${_patient!.name},',
-                          style: const TextStyle(
-                            fontFamily: 'PlayfairDisplay',
-                            fontWeight: FontWeight.w800,
-                            fontStyle: FontStyle.italic,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'Halo, ${_patient!.name},',
+                    style: const TextStyle(
+                      fontFamily: 'DancingScript',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 36,
+                      height: 1.1,
+                      color: AppColors.primary,
                     ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
                     'semoga sehat selalu',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primaryLight,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.4,
-                        ),
+                    style: const TextStyle(
+                      fontFamily: 'DancingScript',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
+                      height: 1.1,
+                      color: AppColors.primaryLight,
+                    ),
                   ),
                 ],
               ),
@@ -211,7 +199,7 @@ class _StatusCard extends StatelessWidget {
               )
             : Column(
                 children: [
-                  RotasiWheel(status: m.status, size: 220),
+                  RotasiWheel(status: m.status, size: 250),
                   const SizedBox(height: 12),
                   Text(
                     'Terakhir: ${m.avgSystolic}/${m.avgDiastolic} · ${m.sessionCode.label}',

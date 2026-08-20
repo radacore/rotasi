@@ -68,7 +68,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
           Center(
             child: RotasiWheel(
               status: m.status,
-              size: 240,
+              size: 260,
             ),
           ),
           const SizedBox(height: 16),
