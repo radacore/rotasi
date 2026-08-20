@@ -1,5 +1,4 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -8,7 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 /// Abstraksi agar mudah dipalsukan pada tes; implementasi nyata memakai
 /// `flutter_local_notifications` (berjalan tanpa koneksi).
 abstract class NotificationScheduler {
-  /// Jadwalkan notifikasi harian pada [hour]:[minute] (waktu lokal).
+  /// Jadwalkan notifikasi harian pada [hour]:[minute] waktu Makassar (WITA).
   Future<void> schedule({
     required int id,
     required String title,
@@ -23,6 +22,11 @@ abstract class NotificationScheduler {
 }
 
 /// Implementasi nyata berbasis `flutter_local_notifications`.
+///
+/// Waktu pengingat selalu ditetapkan pada zona waktu [tzLocation] (Makassar),
+/// tidak bergantung timezone perangkat. `zonedSchedule` menerjemahkan ke
+/// momen absolut (epoch), sehingga tetap benar meski jam perangkat di zona
+/// lain.
 class LocalNotificationScheduler implements NotificationScheduler {
   LocalNotificationScheduler({FlutterLocalNotificationsPlugin? plugin})
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
@@ -32,14 +36,14 @@ class LocalNotificationScheduler implements NotificationScheduler {
 
   static const _channelId = 'pengingat_tensi';
   static const _channelName = 'Pengingat Pengukuran Tensi';
+  static const _tzName = 'Asia/Makassar';
 
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
     tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation(_tzName));
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     await _plugin.initialize(const InitializationSettings(android: android));
-    final local = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(local));
     _initialized = true;
   }
 
