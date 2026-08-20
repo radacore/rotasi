@@ -36,14 +36,19 @@ class _EducationPageState extends State<EducationPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final local = await _repository.getLocal();
+    if (_booklet == null) setState(() => _loading = true);
+    final seeded = await _repository.ensureSeeded();
+    final local = seeded ?? await _repository.getLocal();
+    if (!mounted) return;
+    setState(() {
+      if (local != null) _booklet = local;
+      _loading = false;
+    });
     final remote = await _repository.fetchRemote();
     if (!mounted) return;
     setState(() {
-      _booklet = remote.meta ?? local;
+      _booklet = remote.meta ?? _booklet;
       _needsDownload = remote.needsDownload;
-      _loading = false;
     });
   }
 

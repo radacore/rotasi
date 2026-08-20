@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -27,6 +28,8 @@ class BookletRepository {
         _directoryProvider =
             directoryProvider ?? _defaultDocumentsDirectory;
 
+  static const _seedAsset = 'assets/booklets/rotasi_edukasi_1.pdf';
+
   final ApiClient _api;
   final http.Client _http;
   final Future<Directory> Function() _directoryProvider;
@@ -45,6 +48,43 @@ class BookletRepository {
       booklet.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  /// Semai booklet bawaan (asset) ke penyimpanan bila belum ada (offline-first).
+  ///
+  /// Menyalin PDF yang dibundel ke folder dokumen lalu menyimpan metadata.
+  /// Mengembalikan booklet yang disemai, atau null bila sudah ada / gagal.
+  /// Versi server akan menimpanya (dan mengunduh PDF baru) saat online.
+  Future<Booklet?> ensureSeeded() async {
+    final existing = await getLocal();
+    if (existing?.localPath != null &&
+        await File(existing!.localPath!).exists()) {
+      return null;
+    }
+    try {
+      final data = await rootBundle.load(_seedAsset);
+      final dir = Directory(
+        p.join((await _directoryProvider()).path, 'booklets'),
+      );
+      await dir.create(recursive: true);
+      final file = File(p.join(dir.path, 'rotasi_edukasi_1.pdf'));
+      await file.writeAsBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        flush: true,
+      );
+      final seeded = Booklet(
+        title: 'Booklet Edukasi',
+        version: '1',
+        fileUrl: _seedAsset,
+        fileSize: data.lengthInBytes,
+        localPath: file.path,
+        downloadedAt: DateTime.now(),
+      );
+      await saveMeta(seeded);
+      return seeded;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Ambil metadata booklet aktif dari server.

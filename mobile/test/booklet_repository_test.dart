@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 import 'package:rotasi_mobile/core/api/api_client.dart';
 import 'package:rotasi_mobile/core/db/app_database.dart';
 import 'package:rotasi_mobile/features/education/booklet.dart';
@@ -54,6 +55,7 @@ void main() {
   late Directory tempDir;
 
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     AppDatabase.testDatabasePath = inMemoryDatabasePath;
@@ -80,6 +82,29 @@ void main() {
 
   test('getLocal awalnya null', () async {
     expect(await repo().getLocal(), isNull);
+  });
+
+  test('ensureSeeded menyalin PDF bawaan & menyimpan metadata', () async {
+    final r = repo();
+    final seeded = await r.ensureSeeded();
+    expect(seeded, isNotNull);
+    expect(seeded!.isDownloaded, true);
+    expect(File(seeded.localPath!).existsSync(), true);
+    expect(p.basename(seeded.localPath!), 'rotasi_edukasi_1.pdf');
+
+    final stored = await r.getLocal();
+    expect(stored, isNotNull);
+    expect(stored!.version, '1');
+  });
+
+  test('ensureSeeded tidak menimpa booklet yang sudah ada', () async {
+    final r = repo();
+    await r.ensureSeeded();
+    final first = await r.getLocal();
+
+    expect(await r.ensureSeeded(), isNull);
+    final second = await r.getLocal();
+    expect(second!.localPath, first!.localPath);
   });
 
   test('saveMeta + getLocal roundtrip', () async {

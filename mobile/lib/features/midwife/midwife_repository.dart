@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/api_client.dart';
@@ -12,6 +13,7 @@ class MidwifeRepository {
   MidwifeRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
   static const _cacheKey = 'midwives_cache';
+  static const _seedAsset = 'assets/data/midwives.json';
 
   final ApiClient _api;
 
@@ -32,6 +34,29 @@ class MidwifeRepository {
       return midwives;
     } catch (_) {
       return getLocal();
+    }
+  }
+
+  /// Isi cache dari asset bawaan bila cache masih kosong (offline-first).
+  ///
+  /// Mengembalikan daftar yang baru disemai, atau null bila cache sudah ada /
+  /// asset gagal dimuat. Versi server akan menimpanya saat online.
+  Future<List<Midwife>?> ensureSeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_cacheKey) != null) return null;
+    try {
+      final raw = await rootBundle.loadString(_seedAsset);
+      final data = jsonDecode(raw) as List<dynamic>;
+      final midwives = data
+          .map((e) => Midwife.fromJson(e as Map<String, dynamic>))
+          .toList();
+      await prefs.setString(
+        _cacheKey,
+        jsonEncode(midwives.map((m) => m.toJson()).toList()),
+      );
+      return midwives;
+    } catch (_) {
+      return null;
     }
   }
 

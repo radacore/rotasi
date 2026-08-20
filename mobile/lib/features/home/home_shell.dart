@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/sync/auto_sync.dart';
 import '../../core/sync/sync_service.dart';
 import '../education/education_page.dart';
 import '../measurement/bp_repository.dart';
@@ -37,6 +38,20 @@ class _HomeShellState extends State<HomeShell> {
     5,
     (_) => GlobalKey<NavigatorState>(),
   );
+  late final AutoSync _autoSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoSync = AutoSync(syncService: widget.syncService);
+    _autoSync.start();
+  }
+
+  @override
+  void dispose() {
+    _autoSync.dispose();
+    super.dispose();
+  }
 
   late final List<Widget> _pages = [
     HomePage(

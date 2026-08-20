@@ -35,14 +35,17 @@ class _ReferralPageState extends State<ReferralPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final local = await _repository.getLocal();
-    final remote = await _repository.fetchRemote();
+    if (_settings == null) setState(() => _loading = true);
+    final seeded = await _repository.ensureSeeded();
+    final local = seeded ?? await _repository.getLocal();
     if (!mounted) return;
     setState(() {
-      _settings = remote ?? local;
+      if (local != null) _settings = local;
       _loading = false;
     });
+    final remote = await _repository.fetchRemote();
+    if (!mounted) return;
+    if (remote != null) setState(() => _settings = remote);
   }
 
   Future<void> _call(String phone) async {

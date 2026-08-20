@@ -13,6 +13,16 @@ class _FakeApi extends ApiClient {
   String body;
 
   @override
+  Future<void> registerDevice({
+    required String androidId,
+    required String appVersion,
+    String? deviceName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('device_token', 'fake-token');
+  }
+
+  @override
   Future<http.Response> get(
     String path, {
     Map<String, String>? query,
@@ -30,6 +40,10 @@ String _json() => jsonEncode({
     });
 
 void main() {
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -59,5 +73,25 @@ void main() {
   test('getLocal tanpa cache -> kosong', () async {
     final repo = MidwifeRepository(api: _FakeApi(500, '{}'));
     expect(await repo.getLocal(), isEmpty);
+  });
+
+  test('ensureSeeded mengisi cache dari asset bawaan', () async {
+    final repo = MidwifeRepository(api: _FakeApi(500, '{}'));
+    final seeded = await repo.ensureSeeded();
+    expect(seeded, isNotNull);
+    expect(seeded, isNotEmpty);
+    expect(seeded!.first.name, isNotEmpty);
+
+    final local = await repo.getLocal();
+    expect(local, isNotEmpty);
+  });
+
+  test('ensureSeeded tidak menimpa cache yang sudah ada', () async {
+    final online = MidwifeRepository(api: _FakeApi(200, _json()));
+    await online.fetchRemote();
+
+    final repo = MidwifeRepository(api: _FakeApi(500, '{}'));
+    expect(await repo.ensureSeeded(), isNull);
+    expect((await repo.getLocal()).length, 2);
   });
 }

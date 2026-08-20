@@ -13,6 +13,16 @@ class _FakeApi extends ApiClient {
   String body;
 
   @override
+  Future<void> registerDevice({
+    required String androidId,
+    required String appVersion,
+    String? deviceName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('device_token', 'fake-token');
+  }
+
+  @override
   Future<http.Response> get(
     String path, {
     Map<String, String>? query,
@@ -38,6 +48,10 @@ String _json({String phone = '119'}) => jsonEncode({
     });
 
 void main() {
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -73,5 +87,27 @@ void main() {
   test('getLocal tanpa cache -> null', () async {
     final repo = SettingRepository(api: _FakeApi(500, '{}'));
     expect(await repo.getLocal(), isNull);
+  });
+
+  test('ensureSeeded mengisi cache dari asset bawaan', () async {
+    final repo = SettingRepository(api: _FakeApi(500, '{}'));
+    final seeded = await repo.ensureSeeded();
+    expect(seeded, isNotNull);
+    expect(seeded!.emergencyPhone, '119');
+    expect(seeded.puskesmasName, isNotEmpty);
+
+    final local = await repo.getLocal();
+    expect(local, isNotNull);
+    expect(local!.emergencyPhone, '119');
+  });
+
+  test('ensureSeeded tidak menimpa cache yang sudah ada', () async {
+    final online = SettingRepository(api: _FakeApi(200, _json(phone: '118')));
+    await online.fetchRemote();
+
+    final repo = SettingRepository(api: _FakeApi(500, '{}'));
+    expect(await repo.ensureSeeded(), isNull);
+    final local = await repo.getLocal();
+    expect(local!.emergencyPhone, '118');
   });
 }

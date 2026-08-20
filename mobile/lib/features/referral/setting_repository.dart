@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/api_client.dart';
@@ -12,6 +13,7 @@ class SettingRepository {
   SettingRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
   static const _cacheKey = 'referral_settings_cache';
+  static const _seedAsset = 'assets/data/referral_settings.json';
 
   final ApiClient _api;
 
@@ -33,6 +35,24 @@ class SettingRepository {
       return settings;
     } catch (_) {
       return await getLocal();
+    }
+  }
+
+  /// Isi cache dari asset bawaan bila cache masih kosong (offline-first).
+  ///
+  /// Mengembalikan pengaturan yang baru disemai, atau null bila cache sudah
+  /// ada / asset gagal dimuat. Versi server akan menimpanya saat online.
+  Future<ReferralSettings?> ensureSeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_cacheKey) != null) return null;
+    try {
+      final raw = await rootBundle.loadString(_seedAsset);
+      final settings =
+          ReferralSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      await prefs.setString(_cacheKey, jsonEncode(settings.toJson()));
+      return settings;
+    } catch (_) {
+      return null;
     }
   }
 

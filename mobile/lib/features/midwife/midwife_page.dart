@@ -45,14 +45,17 @@ class _MidwifePageState extends State<MidwifePage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final local = await _repository.getLocal();
-    final remote = await _repository.fetchRemote();
+    if (_midwives.isEmpty) setState(() => _loading = true);
+    final seeded = await _repository.ensureSeeded();
+    final local = seeded ?? await _repository.getLocal();
     if (!mounted) return;
     setState(() {
-      _midwives = remote.isNotEmpty ? remote : local;
+      if (local.isNotEmpty) _midwives = local;
       _loading = false;
     });
+    final remote = await _repository.fetchRemote();
+    if (!mounted) return;
+    if (remote.isNotEmpty) setState(() => _midwives = remote);
   }
 
   Future<String> _buildSummary() async {

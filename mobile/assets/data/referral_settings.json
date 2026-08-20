@@ -1,0 +1,15 @@
+{
+  "app_name": "ROTASI",
+  "emergency_phone": "119",
+  "puskesmas_name": "Puskesmas Barombong",
+  "puskesmas_address": "",
+  "default_wa_message": "",
+  "referral_rules": {
+    "persistent_colors": [
+      "orange",
+      "red"
+    ],
+    "symptom_check_trigger": true,
+    "kick_threshold": 3
+  }
+}

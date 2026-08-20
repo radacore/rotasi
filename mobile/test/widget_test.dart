@@ -1060,6 +1060,9 @@ class FakeMidwifeRepository extends MidwifeRepository {
 
   @override
   Future<List<Midwife>> fetchRemote() async => midwives;
+
+  @override
+  Future<List<Midwife>?> ensureSeeded() async => null;
 }
 
 class FakeSettingRepository extends SettingRepository {
@@ -1072,6 +1075,9 @@ class FakeSettingRepository extends SettingRepository {
 
   @override
   Future<ReferralSettings?> fetchRemote() async => settings;
+
+  @override
+  Future<ReferralSettings?> ensureSeeded() async => null;
 }
 
 class FakeBookletRepository extends BookletRepository {
@@ -1094,6 +1100,9 @@ class FakeBookletRepository extends BookletRepository {
     downloadCount++;
     return downloadResult ?? meta.copyWith(localPath: '/tmp/downloaded.pdf');
   }
+
+  @override
+  Future<Booklet?> ensureSeeded() async => null;
 }
 
 class FakeAncRepository extends AncRepository {
