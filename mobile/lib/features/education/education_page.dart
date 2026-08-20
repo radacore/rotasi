@@ -65,8 +65,11 @@ class _EducationPageState extends State<EducationPage> {
   void _open() {
     final path = _booklet?.localPath;
     if (path == null) return;
-    Navigator.of(context).push(
+    // Push lewat root navigator agar layar full (bottom nav & FAB tertutup)
+    // dan observer bisa menyembunyikan tombol "Hubungi Bidan".
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
+        settings: const RouteSettings(name: bookletViewerRouteName),
         builder: (_) => BookletViewerPage(
           title: _booklet!.title,
           path: path,

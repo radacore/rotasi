@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../education/booklet_viewer_page.dart';
 import 'midwife_page.dart';
 
 /// Nama route halaman Hubungi Bidan, dipakai untuk menyembunyikan tombol
@@ -22,7 +23,8 @@ class ContactFabVisibility extends NavigatorObserver {
     }
     final top = _stack.last;
     final hide = (top is ModalRoute && !top.opaque) ||
-        top.settings.name == midwifeRouteName;
+        top.settings.name == midwifeRouteName ||
+        top.settings.name == bookletViewerRouteName;
     visible.value = !hide;
   }
 

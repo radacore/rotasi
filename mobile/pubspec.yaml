@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_local_notifications: ^19.0.0
+  flutter_pdf_flipbook:
+    path: third_party/flutter_pdf_flipbook
   http: ^1.6.0
   intl: ^0.20.3
   path: ^1.9.1
