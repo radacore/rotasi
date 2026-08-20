@@ -25,11 +25,16 @@ class Booklet {
   String get fileName => 'rotasi_edukasi_$version.pdf';
 
   factory Booklet.fromRemote(Map<String, dynamic> data) {
+    final rawVersion = data['version'];
     return Booklet(
       title: data['title'] as String? ?? 'Booklet Edukasi',
-      version: data['version'] as String? ?? '1',
+      version: rawVersion == null
+          ? '1'
+          : rawVersion is String
+              ? rawVersion
+              : rawVersion.toString(),
       fileUrl: data['file_url'] as String,
-      fileSize: data['file_size'] as int?,
+      fileSize: (data['file_size'] as num?)?.toInt(),
       uploadedAt: data['uploaded_at'] == null
           ? null
           : DateTime.tryParse(data['uploaded_at'] as String),

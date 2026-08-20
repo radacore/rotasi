@@ -21,6 +21,21 @@ void main() {
       expect(b.localPath, isNull);
     });
 
+    test('fromRemote menoleransi version bertipe int dari server', () {
+      final b = Booklet.fromRemote({
+        'id': 2,
+        'title': 'asasa',
+        'version': 1,
+        'file_url': 'https://x/booklets/abc.pdf',
+        'file_size': 425900,
+        'uploaded_at': '2026-08-19 15:21:42',
+      });
+      expect(b.title, 'asasa');
+      expect(b.version, '1');
+      expect(b.fileSize, 425900);
+      expect(b.uploadedAt, isNotNull);
+    });
+
     test('fileName memakai versi', () {
       final b = Booklet(
         title: 't',
