@@ -231,46 +231,53 @@ class _RunningView extends StatelessWidget {
               .displaySmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
-        const Spacer(),
-        AnimatedContainer(
-          duration: const Duration(seconds: 1),
-          curve: Curves.easeInOut,
-          width: base + growth * maxGrowth,
-          height: base + growth * maxGrowth,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: 0.15),
-            border: Border.all(color: color, width: 3),
-          ),
+        Expanded(
           child: Center(
-            child: Text(
-              phase.label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: color,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(seconds: 1),
+                  curve: Curves.easeInOut,
+                  width: base + growth * maxGrowth,
+                  height: base + growth * maxGrowth,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withValues(alpha: 0.15),
+                    border: Border.all(color: color, width: 3),
                   ),
+                  child: Center(
+                    child: Text(
+                      phase.label,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: color,
+                          ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$phaseRemaining',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  phase.tip,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          '$phaseRemaining',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          phase.tip,
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: AppColors.textSecondary),
-        ),
-        const Spacer(),
         Padding(
           padding: const EdgeInsets.all(16),
           child: OutlinedButton.icon(
