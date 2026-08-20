@@ -1,0 +1,77 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:rotasi_mobile/core/api/api_client.dart';
+import 'package:rotasi_mobile/features/referral/setting_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _FakeApi extends ApiClient {
+  _FakeApi(this.statusCode, this.body);
+
+  int statusCode;
+  String body;
+
+  @override
+  Future<http.Response> get(
+    String path, {
+    Map<String, String>? query,
+  }) async {
+    return http.Response(body, statusCode);
+  }
+}
+
+String _json({String phone = '119'}) => jsonEncode({
+      'success': true,
+      'data': {
+        'app_name': 'ROTASI',
+        'emergency_phone': phone,
+        'puskesmas_name': 'Puskesmas Sehat',
+        'puskesmas_address': 'Jl. Merdeka 1',
+        'default_wa_message': 'Halo bidan',
+        'referral_rules': {
+          'persistent_colors': ['orange', 'red'],
+          'symptom_check_trigger': true,
+          'kick_threshold': 3,
+        },
+      },
+    });
+
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  test('fetchRemote menyimpan cache lokal', () async {
+    final repo = SettingRepository(api: _FakeApi(200, _json()));
+    final remote = await repo.fetchRemote();
+    expect(remote, isNotNull);
+    expect(remote!.emergencyPhone, '119');
+    expect(remote.puskesmasName, 'Puskesmas Sehat');
+    expect(remote.rules.kickThreshold, 3);
+
+    final local = await repo.getLocal();
+    expect(local, isNotNull);
+    expect(local!.emergencyPhone, '119');
+  });
+
+  test('fetchRemote gagal -> memakai cache lokal', () async {
+    SharedPreferences.setMockInitialValues({});
+    final offline = SettingRepository(api: _FakeApi(500, '{}'));
+    expect(await offline.fetchRemote(), isNull);
+
+    // Simpan cache dulu lalu offline.
+    final online = SettingRepository(api: _FakeApi(200, _json(phone: '118')));
+    await online.fetchRemote();
+
+    final offline2 = SettingRepository(api: _FakeApi(500, '{}'));
+    final fromCache = await offline2.fetchRemote();
+    expect(fromCache, isNotNull);
+    expect(fromCache!.emergencyPhone, '118');
+  });
+
+  test('getLocal tanpa cache -> null', () async {
+    final repo = SettingRepository(api: _FakeApi(500, '{}'));
+    expect(await repo.getLocal(), isNull);
+  });
+}
