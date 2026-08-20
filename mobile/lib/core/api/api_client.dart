@@ -11,6 +11,7 @@ class ApiClient {
 
   static const _tokenKey = 'device_token';
   static const _deviceUuidKey = 'device_uuid';
+  static const _timeout = Duration(seconds: 10);
 
   final http.Client _http;
 
@@ -37,7 +38,7 @@ class ApiClient {
         'app_version': appVersion,
         'device_name': deviceName,
       }),
-    );
+    ).timeout(_timeout);
 
     if (res.statusCode >= 300) {
       throw ApiException('Registrasi perangkat gagal (${res.statusCode})');
@@ -87,19 +88,19 @@ class ApiClient {
     late http.Response res;
     switch (method) {
       case 'GET':
-        res = await _http.get(uri, headers: headers);
+        res = await _http.get(uri, headers: headers).timeout(_timeout);
       case 'POST':
         res = await _http.post(
           uri,
           headers: headers,
           body: body == null ? null : jsonEncode(body),
-        );
+        ).timeout(_timeout);
       case 'PUT':
         res = await _http.put(
           uri,
           headers: headers,
           body: body == null ? null : jsonEncode(body),
-        );
+        ).timeout(_timeout);
       default:
         throw ArgumentError('Method tidak didukung: $method');
     }

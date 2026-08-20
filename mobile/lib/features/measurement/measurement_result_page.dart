@@ -5,6 +5,7 @@ import 'bp_measurement.dart';
 import 'bp_repository.dart';
 import 'bp_status.dart';
 import 'rotasi_wheel.dart';
+import 'status_explanation.dart';
 
 /// Ringkasan hasil sesi pengukuran (FR-04): roda warna, rata-rata, dan simpan.
 class MeasurementResultPage extends StatefulWidget {
@@ -88,6 +89,8 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
                 .bodyMedium
                 ?.copyWith(color: AppColors.textSecondary),
           ),
+          const SizedBox(height: 16),
+          StatusExplanation(active: m.status),
           const SizedBox(height: 16),
           Card(
             margin: EdgeInsets.zero,

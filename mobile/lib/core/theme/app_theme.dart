@@ -25,31 +25,91 @@ abstract final class AppColors {
 
 abstract final class AppTheme {
   static ThemeData get light {
-    final base = ThemeData.light(useMaterial3: true);
-    return base.copyWith(
+    const family = 'PlusJakartaSans';
+    final base = ThemeData(
+      useMaterial3: true,
+      fontFamily: family,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,
         secondary: AppColors.accent,
         surface: AppColors.white,
       ),
+    );
+    return base.copyWith(
       scaffoldBackgroundColor: AppColors.neutralLight,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         centerTitle: true,
       ),
-      textTheme: base.textTheme.apply(
-        bodyColor: AppColors.textPrimary,
-        displayColor: AppColors.textPrimary,
-      ),
+      textTheme: base.textTheme
+          .apply(
+            bodyColor: AppColors.textPrimary,
+            displayColor: AppColors.textPrimary,
+            fontFamily: family,
+          )
+          .copyWith(
+            headlineLarge: base.textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+            headlineMedium: base.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            titleLarge: base.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            titleMedium: base.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: family,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          minimumSize: const Size.fromHeight(48),
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(
+            fontFamily: family,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          textStyle: const TextStyle(
+            fontFamily: family,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          foregroundColor: AppColors.white,
+          backgroundColor: AppColors.primary,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(
+            fontFamily: family,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       cardTheme: const CardThemeData(

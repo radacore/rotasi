@@ -93,7 +93,9 @@ class BookletRepository {
   /// Mengembalikan booklet dengan `localPath` baru, atau null saat gagal.
   Future<Booklet?> download(Booklet meta) async {
     try {
-      final res = await _http.get(Uri.parse(_resolveUrl(meta.fileUrl)));
+      final res = await _http
+          .get(Uri.parse(_resolveUrl(meta.fileUrl)))
+          .timeout(const Duration(seconds: 15));
       if (res.statusCode >= 300) return null;
       final dir = Directory(p.join((await _directoryProvider()).path, 'booklets'));
       await dir.create(recursive: true);

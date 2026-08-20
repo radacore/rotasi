@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/sync/sync_service.dart';
-import 'features/home/home_page.dart';
+import 'features/home/home_shell.dart';
 import 'features/measurement/bp_repository.dart';
 import 'features/registration/patient.dart';
 import 'features/registration/patient_repository.dart';
@@ -75,7 +75,7 @@ class _StartupGateState extends State<StartupGate> {
         }
         final hasProfile = snapshot.data != null;
         return hasProfile
-            ? HomePage(
+            ? HomeShell(
                 repository: _repository,
                 bpRepository: _bpRepository,
                 syncService: widget.syncService,

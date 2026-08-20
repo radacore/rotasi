@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:rotasi_mobile/core/sync/sync_service.dart';
 import 'package:rotasi_mobile/app.dart';
 import 'package:rotasi_mobile/features/measurement/bp_measurement.dart';
@@ -16,6 +17,7 @@ import 'package:rotasi_mobile/features/kick_count/kick_count_page.dart';
 import 'package:rotasi_mobile/features/kick_count/kick_repository.dart';
 import 'package:rotasi_mobile/features/anc_check/anc_check.dart';
 import 'package:rotasi_mobile/features/anc_check/anc_check_page.dart';
+import 'package:rotasi_mobile/features/anc_check/anc_guide_page.dart';
 import 'package:rotasi_mobile/features/anc_check/anc_repository.dart';
 import 'package:rotasi_mobile/features/education/booklet.dart';
 import 'package:rotasi_mobile/features/education/booklet_repository.dart';
@@ -34,6 +36,7 @@ import 'package:rotasi_mobile/core/notifications/notification_scheduler.dart';
 import 'package:rotasi_mobile/features/registration/patient.dart';
 import 'package:rotasi_mobile/features/registration/patient_repository.dart';
 import 'package:rotasi_mobile/features/registration/registration_page.dart';
+import 'package:rotasi_mobile/features/home/home_shell.dart';
 
 class FakePatientRepository extends PatientRepository {
   FakePatientRepository({this.initial, this.syncResult = true});
@@ -109,6 +112,11 @@ Future<void> _pumpApp(
 }
 
 void main() {
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
   group('StartupGate', () {
     testWidgets('first launch -> halaman registrasi biodata', (tester) async {
       await _pumpApp(tester, FakePatientRepository());
@@ -130,11 +138,16 @@ void main() {
         bpRepo: FakeBpRepository(),
       );
 
-      expect(find.text('Halo, Sitti'), findsOneWidget);
-      expect(find.text('Ukur Tensi'), findsOneWidget);
+      expect(find.text('Halo, Sitti,', findRichText: true), findsOneWidget);
+      expect(find.text('semoga sehat selalu'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Ukur Tensi'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('beranda menampilkan skrining risiko (FR-02)', (tester) async {
+    testWidgets('beranda tidak menampilkan card skrining risiko (FR-02)',
+        (tester) async {
       final existing = Patient.newLocal(
         name: 'Nur',
         age: 38,
@@ -147,10 +160,7 @@ void main() {
         bpRepo: FakeBpRepository(),
       );
 
-      expect(find.text('Skrining Risiko Otomatis'), findsOneWidget);
-      expect(find.text('Risiko Sedang'), findsOneWidget);
-      expect(find.text('Usia > 35 tahun'), findsOneWidget);
-      expect(find.text('IMT 33.3'), findsOneWidget);
+      expect(find.text('Skrining Risiko Otomatis'), findsNothing);
     });
   });
 
@@ -195,7 +205,8 @@ void main() {
 
       expect(repo.saveCount, 1);
       expect(repo.syncCount, 1);
-      expect(find.text('Halo, Sitti'), findsOneWidget);
+      expect(find.text('Halo, Sitti,', findRichText: true), findsOneWidget);
+      expect(find.text('semoga sehat selalu'), findsOneWidget);
     });
 
     testWidgets('riwayat hipertensi tersimpan ke model', (tester) async {
@@ -515,6 +526,32 @@ void main() {
       await tester.pumpAndSettle();
       expect(repo.saveCount, 1);
       expect(repo.stored!.items, ['t2', 't7']);
+    });
+  });
+
+  group('AncGuidePage (panduan pemeriksaan kehamilan)', () {
+    testWidgets('menampilkan intro, standar 10T, lab, dan USG', (tester) async {
+      tester.view.physicalSize = const Size(800, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        const MaterialApp(home: AncGuidePage()),
+      );
+
+      expect(find.text('Panduan Pemeriksaan'), findsOneWidget);
+      expect(find.text('6x'), findsOneWidget);
+      expect(find.text('10T'), findsOneWidget);
+      expect(
+        find.text('Pemeriksaan Fisik Klinis & Medis (Standar 10 T)'),
+        findsOneWidget,
+      );
+      expect(find.text('T10'), findsOneWidget);
+      expect(
+        find.text('Skrining Penyakit Menular (Triple Elimination)'),
+        findsOneWidget,
+      );
+      expect(find.text('USG Trimester 3 (sekitar 32–36 minggu)'),
+          findsOneWidget);
     });
   });
 
@@ -925,6 +962,71 @@ void main() {
       expect(scheduler.cancelled, containsAll([1, 2]));
       expect(repo.saved!.enabled, isFalse);
       expect(find.text('Pengingat dimatikan.'), findsOneWidget);
+    });
+  });
+
+  group('HomeShell navigasi (bottom bar)', () {
+    Future<void> pumpShell(WidgetTester tester) async {
+      final patient = Patient.newLocal(
+        name: 'Sitti',
+        age: 28,
+        heightCm: 155,
+        weightKg: 52,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomeShell(
+            repository: FakePatientRepository(initial: patient),
+            bpRepository: FakeBpRepository(),
+            syncService: FakeSyncService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('menampilkan 5 menu bottom navigation', (tester) async {
+      await pumpShell(tester);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      for (final label in [
+        'Beranda',
+        'Ukur Tensi',
+        'Tren',
+        'Pantau',
+        'Edukasi',
+      ]) {
+        expect(find.text(label), findsWidgets);
+      }
+    });
+
+    testWidgets('berpindah antar tab membuka halaman terkait', (tester) async {
+      await pumpShell(tester);
+
+      await tester.tap(find.text('Tren'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Tren Tekanan Darah'), findsOneWidget);
+
+      await tester.tap(find.text('Pantau'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cek Gejala Harian'), findsOneWidget);
+
+      await tester.tap(find.text('Edukasi'));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Pustaka Edukasi'), findsOneWidget);
+    });
+
+    testWidgets('ikon Lainnya di AppBar membuka menu terkategori', (tester) async {
+      await pumpShell(tester);
+
+      await tester.tap(find.byTooltip('Lainnya'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Data & Profil'), findsOneWidget);
+      expect(find.text('Kesehatan & Kebiasaan'), findsOneWidget);
+      expect(find.text('Bantuan & Kontak'), findsOneWidget);
+      expect(find.text('Data Ibu'), findsOneWidget);
+      expect(find.text('Latihan Napas'), findsOneWidget);
+      expect(find.text('Rujukan & Darurat'), findsOneWidget);
     });
   });
 }

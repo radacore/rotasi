@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../home/home_page.dart';
+import '../home/home_shell.dart';
 import '../measurement/bp_repository.dart';
 import 'patient.dart';
 import 'patient_repository.dart';
@@ -23,7 +23,6 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   final _formKey = GlobalKey<FormState>();
   late final PatientRepository _repository;
-  late final BpRepository? _bpRepository;
 
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
@@ -41,7 +40,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
   void initState() {
     super.initState();
     _repository = widget.repository ?? PatientRepository();
-    _bpRepository = widget.bpRepository;
   }
 
   @override
@@ -99,9 +97,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => HomePage(
-          repository: _repository,
-          bpRepository: _bpRepository,
+        builder: (_) => HomeShell(
+          repository: widget.repository,
+          bpRepository: widget.bpRepository,
         ),
       ),
     );
@@ -154,85 +152,69 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _ageController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Usia (tahun)',
-                                prefixIcon: Icon(Icons.cake),
-                              ),
-                              validator: (v) {
-                                final n = int.tryParse(v ?? '');
-                                if (n == null || n < 12 || n > 55) {
-                                  return 'Usia 12–55 tahun';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _gestationalWeeksController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Usia kehamilan (minggu)',
-                                prefixIcon: Icon(Icons.pregnant_woman),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return null;
-                                final n = int.tryParse(v);
-                                if (n == null || n < 0 || n > 45) {
-                                  return '0–45 minggu';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        controller: _ageController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Usia (tahun)',
+                          prefixIcon: Icon(Icons.cake),
+                        ),
+                        validator: (v) {
+                          final n = int.tryParse(v ?? '');
+                          if (n == null || n < 12 || n > 55) {
+                            return 'Usia 12–55 tahun';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _heightController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Tinggi badan (cm)',
-                                prefixIcon: Icon(Icons.height),
-                              ),
-                              validator: (v) {
-                                final n = double.tryParse(v ?? '');
-                                if (n == null || n < 100 || n > 250) {
-                                  return '100–250 cm';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _weightController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Berat badan (kg)',
-                                prefixIcon: Icon(Icons.monitor_weight),
-                              ),
-                              validator: (v) {
-                                final n = double.tryParse(v ?? '');
-                                if (n == null || n < 30 || n > 200) {
-                                  return '30–200 kg';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        controller: _gestationalWeeksController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Usia kehamilan (minggu)',
+                          prefixIcon: Icon(Icons.pregnant_woman),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          final n = int.tryParse(v);
+                          if (n == null || n < 0 || n > 45) {
+                            return '0–45 minggu';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _heightController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Tinggi badan (cm)',
+                          prefixIcon: Icon(Icons.height),
+                        ),
+                        validator: (v) {
+                          final n = double.tryParse(v ?? '');
+                          if (n == null || n < 100 || n > 250) {
+                            return '100–250 cm';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _weightController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Berat badan (kg)',
+                          prefixIcon: Icon(Icons.monitor_weight),
+                        ),
+                        validator: (v) {
+                          final n = double.tryParse(v ?? '');
+                          if (n == null || n < 30 || n > 200) {
+                            return '30–200 kg';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -240,46 +222,38 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _systolicController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Sistolik (atas)',
-                                prefixIcon: Icon(Icons.favorite_outline),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return null;
-                                final n = int.tryParse(v);
-                                if (n == null || n < 50 || n > 180) {
-                                  return '50–180';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _diastolicController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Diastolik (bawah)',
-                                prefixIcon: Icon(Icons.favorite_outline),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return null;
-                                final n = int.tryParse(v);
-                                if (n == null || n < 30 || n > 120) {
-                                  return '30–120';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        controller: _systolicController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Sistolik (atas)',
+                          prefixIcon: Icon(Icons.favorite_outline),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          final n = int.tryParse(v);
+                          if (n == null || n < 50 || n > 180) {
+                            return '50–180';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _diastolicController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Diastolik (bawah)',
+                          prefixIcon: Icon(Icons.favorite_outline),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          final n = int.tryParse(v);
+                          if (n == null || n < 30 || n > 120) {
+                            return '30–120';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       Text(
