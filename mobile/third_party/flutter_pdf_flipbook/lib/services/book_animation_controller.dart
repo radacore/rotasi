@@ -15,7 +15,7 @@ class BookAnimationController {
   }) {
     _animationController = AnimationController(
       vsync: vsync,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 400),
     );
 
     _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -67,7 +67,7 @@ class BookAnimationController {
     await pdfLoader.loadPages(appState.currentPage, null);
 
     /// Hide fast navigation indicator and ensure animation state is ready
-    Future.delayed(Duration(milliseconds: 300), () {
+    Future.delayed(Duration(milliseconds: 150), () {
       appState.updateMultiple(
         animationEnd: true,
         animationComplete: false,
