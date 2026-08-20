@@ -214,13 +214,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.8"
-  flutter_pdf_flipbook:
-    dependency: "direct main"
-    description:
-      path: "third_party/flutter_pdf_flipbook"
-      relative: true
-    source: path
-    version: "1.0.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
