@@ -74,7 +74,7 @@ class BookletRepository {
       );
       final seeded = Booklet(
         title: 'Booklet Edukasi',
-        version: '1',
+        version: '0',
         fileUrl: _seedAsset,
         fileSize: data.lengthInBytes,
         localPath: file.path,
@@ -105,11 +105,14 @@ class BookletRepository {
       final remote = Booklet.fromRemote(data);
       final local = await getLocal();
 
-      final sameVersion = local?.version == remote.version;
-      final fileExists = local?.localPath != null &&
-          await File(local!.localPath!).exists();
+      final sameFile = local != null &&
+          local.version == remote.version &&
+          local.fileUrl == remote.fileUrl;
+      final fileExists = sameFile &&
+          local.localPath != null &&
+          await File(local.localPath!).exists();
 
-      final merged = sameVersion && local != null
+      final merged = sameFile
           ? Booklet(
               title: remote.title,
               version: remote.version,
@@ -121,7 +124,7 @@ class BookletRepository {
             )
           : remote;
       await saveMeta(merged);
-      return (meta: merged, needsDownload: !(sameVersion && fileExists));
+      return (meta: merged, needsDownload: !(sameFile && fileExists));
     } catch (_) {
       final local = await getLocal();
       return (meta: local, needsDownload: false);
@@ -135,7 +138,7 @@ class BookletRepository {
     try {
       final res = await _http
           .get(Uri.parse(_resolveUrl(meta.fileUrl)))
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       if (res.statusCode >= 300) return null;
       final dir = Directory(p.join((await _directoryProvider()).path, 'booklets'));
       await dir.create(recursive: true);

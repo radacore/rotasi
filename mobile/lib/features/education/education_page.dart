@@ -313,6 +313,16 @@ class _BookletCoverState extends State<_BookletCover> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(_BookletCover oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path) {
+      _bytes = null;
+      _failed = false;
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     final path = widget.path;
     if (path == null) return;

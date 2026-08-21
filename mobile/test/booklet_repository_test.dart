@@ -94,7 +94,7 @@ void main() {
 
     final stored = await r.getLocal();
     expect(stored, isNotNull);
-    expect(stored!.version, '1');
+    expect(stored!.version, '0');
   });
 
   test('ensureSeeded tidak menimpa booklet yang sudah ada', () async {
@@ -132,7 +132,7 @@ void main() {
     expect(stored!.version, '2.0');
   });
 
-  test('fetchRemote versi sama + file ada -> needsDownload false', () async {
+  test('fetchRemote versi sama + file sama -> needsDownload false', () async {
     final r = repo(api: _FakeApi(200, _remoteJson(version: '1.0')));
     final existing = File('${tempDir.path}/rotasi_edukasi_1.0.pdf');
     existing.writeAsBytesSync([1, 2, 3]);
@@ -141,7 +141,7 @@ void main() {
       Booklet(
         title: 'Panduan',
         version: '1.0',
-        fileUrl: 'http://x/b.pdf',
+        fileUrl: 'http://x/storage/booklets/b.pdf',
         localPath: existing.path,
         downloadedAt: DateTime(2026, 8, 1),
       ),
@@ -150,6 +150,26 @@ void main() {
     final result = await r.fetchRemote();
     expect(result.needsDownload, false);
     expect(result.meta!.localPath, existing.path);
+  });
+
+  test('fetchRemote versi sama tapi file beda -> needsDownload true', () async {
+    final r = repo(api: _FakeApi(200, _remoteJson(version: '1.0')));
+    final existing = File('${tempDir.path}/rotasi_edukasi_1.0.pdf');
+    existing.writeAsBytesSync([1, 2, 3]);
+
+    await r.saveMeta(
+      Booklet(
+        title: 'Panduan',
+        version: '1.0',
+        fileUrl: 'http://x/old.pdf',
+        localPath: existing.path,
+        downloadedAt: DateTime(2026, 8, 1),
+      ),
+    );
+
+    final result = await r.fetchRemote();
+    expect(result.needsDownload, true);
+    expect(result.meta!.localPath, isNull);
   });
 
   test('download menulis file & memperbarui metadata', () async {
