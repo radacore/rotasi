@@ -85,6 +85,16 @@ void main() {
     expect(last.status, BpStatus.crisis);
   });
 
+  test('saveLocal memberi tahu listener (auto-update Beranda/Tren)', () async {
+    final repo = BpRepository();
+    var notified = 0;
+    repo.addListener(() => notified++);
+
+    await repo.saveLocal(build());
+
+    expect(notified, 1);
+  });
+
   test('markSynced menandai synced = 1', () async {
     final repo = BpRepository();
     final m = build();

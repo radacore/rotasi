@@ -37,6 +37,7 @@ import 'package:rotasi_mobile/features/registration/patient.dart';
 import 'package:rotasi_mobile/features/registration/patient_repository.dart';
 import 'package:rotasi_mobile/features/registration/registration_page.dart';
 import 'package:rotasi_mobile/features/home/home_shell.dart';
+import 'package:rotasi_mobile/features/home/home_page.dart';
 
 class FakePatientRepository extends PatientRepository {
   FakePatientRepository({this.initial, this.syncResult = true});
@@ -81,7 +82,9 @@ class FakeBpRepository extends BpRepository {
   @override
   Future<void> saveLocal(BpMeasurement measurement) async {
     stored = measurement;
+    storedHistory = [...storedHistory, measurement];
     saveCount++;
+    notifyListeners();
   }
 
   @override
@@ -898,6 +901,80 @@ void main() {
 
       expect(sync.callCount, 1);
       expect(find.text('Semua data sudah tersinkron.'), findsOneWidget);
+    });
+  });
+
+  group('Beranda auto-refresh (opsi 1)', () {
+    testWidgets('menyimpan pengukuran langsung memperbarui status card',
+        (tester) async {
+      tester.view.physicalSize = const Size(900, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final bpRepo = FakeBpRepository();
+      final existing = Patient.newLocal(
+        name: 'Sitti',
+        age: 28,
+        heightCm: 155,
+        weightKg: 52,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomePage(
+            repository: FakePatientRepository(initial: existing),
+            bpRepository: bpRepo,
+            syncService: FakeSyncService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Belum ada pengukuran'), findsOneWidget);
+
+      await bpRepo.saveLocal(
+        BpMeasurement.record(
+          patientUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          measuredAt: DateTime(2026, 8, 20, 8, 0),
+          sessionCode: SessionCode.pagi,
+          systolic1: 120,
+          diastolic1: 80,
+          systolic2: 124,
+          diastolic2: 78,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Belum ada pengukuran'), findsNothing);
+      expect(find.text('Terakhir: 122/79 · Pagi'), findsOneWidget);
+    });
+  });
+
+  group('Tren auto-refresh (opsi 1)', () {
+    testWidgets('menyimpan pengukuran langsung memperbarui grafik tren',
+        (tester) async {
+      tester.view.physicalSize = const Size(900, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final bpRepo = FakeBpRepository();
+      await tester.pumpWidget(MaterialApp(home: TrendPage(repository: bpRepo)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Belum ada data pengukuran.'), findsOneWidget);
+
+      await bpRepo.saveLocal(
+        BpMeasurement.record(
+          patientUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+          measuredAt: DateTime(2026, 8, 20, 8, 0),
+          sessionCode: SessionCode.pagi,
+          systolic1: 120,
+          diastolic1: 80,
+          systolic2: 124,
+          diastolic2: 78,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Belum ada data pengukuran.'), findsNothing);
+      expect(find.text('Sistolik (atas)'), findsOneWidget);
     });
   });
 

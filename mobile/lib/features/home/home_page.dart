@@ -45,6 +45,18 @@ class _HomePageState extends State<HomePage> {
     _repository = widget.repository ?? PatientRepository();
     _bpRepository = widget.bpRepository ?? BpRepository();
     _syncService = widget.syncService ?? SyncService();
+    _bpRepository.addListener(_onBpChanged);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _bpRepository.removeListener(_onBpChanged);
+    super.dispose();
+  }
+
+  /// Muat ulang saat data pengukuran baru tersimpan (auto-update).
+  void _onBpChanged() {
     _load();
   }
 

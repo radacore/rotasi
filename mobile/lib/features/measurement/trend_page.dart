@@ -69,6 +69,18 @@ class _TrendPageState extends State<TrendPage> {
   void initState() {
     super.initState();
     _repository = widget.repository ?? BpRepository();
+    _repository.addListener(_onBpChanged);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _repository.removeListener(_onBpChanged);
+    super.dispose();
+  }
+
+  /// Muat ulang saat data pengukuran baru tersimpan (auto-update).
+  void _onBpChanged() {
     _load();
   }
 

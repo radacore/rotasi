@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../core/api/api_client.dart';
@@ -9,7 +10,10 @@ import '../registration/patient_repository.dart';
 import 'bp_measurement.dart';
 
 /// Penyimpanan catatan tensi: lokal (SQLite) + sinkronisasi best-effort.
-class BpRepository {
+///
+/// Memperluas [ChangeNotifier] agar halaman (Beranda, Tren) dapat langsung
+/// memuat ulang saat data pengukuran baru disimpan.
+class BpRepository extends ChangeNotifier {
   BpRepository({ApiClient? api, PatientRepository? patientRepository})
       : _api = api ?? ApiClient(),
         _patientRepository = patientRepository ?? PatientRepository();
@@ -25,6 +29,7 @@ class BpRepository {
       measurement.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    notifyListeners();
   }
 
   /// Ambil pengukuran terbaru (untuk roda status di beranda).
