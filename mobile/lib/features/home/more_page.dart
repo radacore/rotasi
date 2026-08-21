@@ -24,8 +24,16 @@ class MorePage extends StatelessWidget {
   final BpRepository? bpRepository;
 
   void _push(BuildContext context, Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    Navigator.of(context).push(_instantRoute(page));
   }
+
+  /// Route tanpa animasi agar perpindahan dari menu Lainnya terasa langsung,
+  /// sejajar dengan navigasi Beranda → Ukur Tensi.
+  static Route<T> _instantRoute<T>(Widget page) => PageRouteBuilder<T>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, _, _) => page,
+      );
 
   @override
   Widget build(BuildContext context) {
