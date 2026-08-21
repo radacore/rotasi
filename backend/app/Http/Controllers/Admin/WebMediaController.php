@@ -35,7 +35,17 @@ class WebMediaController extends Controller
         $file = $request->file('file');
         $disk = Storage::disk('media');
 
-        $path = $disk->putFile('media', $file, 'public');
+        try {
+            $path = $disk->putFile('media', $file, 'public');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['file' => 'Upload file ke penyimpanan gagal. Silakan coba lagi.']);
+        }
+
+        if (! $path) {
+            return back()->withErrors(['file' => 'Upload file ke penyimpanan gagal. Silakan coba lagi.']);
+        }
 
         $media = Media::create([
             'filename' => basename($path),

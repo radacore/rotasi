@@ -37,9 +37,19 @@ class WebBookletController extends Controller
         $file = $request->file('file');
         $disk = Storage::disk('media');
 
-        $path = $disk->putFile('booklets', $file, 'public');
+        try {
+            $path = $disk->putFile('booklets', $file, 'public');
+        } catch (\Throwable $e) {
+            report($e);
 
-        $version = (int) BookletRelease::max('version') + 1;
+            return back()->withErrors(['file' => 'Upload file ke penyimpanan gagal. Silakan coba lagi.'])->withInput();
+        }
+
+        if (! $path) {
+            return back()->withErrors(['file' => 'Upload file ke penyimpanan gagal. Silakan coba lagi.'])->withInput();
+        }
+
+        $version = (int) BookletRelease::max('id') + 1;
 
         $release = BookletRelease::create([
             'title' => $data['title'],

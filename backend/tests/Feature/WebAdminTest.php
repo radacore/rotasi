@@ -79,6 +79,23 @@ class WebAdminTest extends TestCase
         $this->assertDatabaseMissing('booklet_releases', ['id' => $booklet->id]);
     }
 
+    public function test_booklet_upload_fails_without_silent_broken_record(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $disk = \Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+        $disk->shouldReceive('putFile')->once()->andReturn(false);
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')->with('media')->andReturn($disk);
+
+        $file = UploadedFile::fake()->create('booklet-gagal.pdf', 1024, 'application/pdf');
+
+        $this->post('/booklet', ['title' => 'Gagal Upload', 'file' => $file])
+            ->assertSessionHasErrors('file');
+
+        $this->assertDatabaseMissing('booklet_releases', ['title' => 'Gagal Upload']);
+    }
+
     public function test_midwife_crud_flow(): void
     {
         $admin = $this->admin();
