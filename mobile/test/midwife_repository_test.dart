@@ -80,10 +80,13 @@ void main() {
     final seeded = await repo.ensureSeeded();
     expect(seeded, isNotNull);
     expect(seeded, isNotEmpty);
-    expect(seeded!.first.name, isNotEmpty);
+    expect(seeded!.first.name, 'Lusi');
+    expect(seeded.first.role, 'Bidan');
+    expect(seeded.first.phone, '081227088313');
 
     final local = await repo.getLocal();
     expect(local, isNotEmpty);
+    expect(local.first.name, 'Lusi');
   });
 
   test('ensureSeeded tidak menimpa cache yang sudah ada', () async {
