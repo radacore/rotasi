@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\WebDashboardController;
 use App\Http\Controllers\Admin\WebMediaController;
 use App\Http\Controllers\Admin\WebMidwifeController;
 use App\Http\Controllers\Admin\WebPatientController;
+use App\Http\Controllers\Admin\WebUploadController;
 use App\Http\Controllers\Admin\WebSettingController;
 use App\Http\Controllers\Admin\WebSyncLogController;
 use Illuminate\Support\Facades\Route;
@@ -49,8 +50,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/apk', [WebApkController::class, 'index'])->name('apk.index');
     Route::post('/apk', [WebApkController::class, 'store'])->name('apk.store');
+    Route::get('/apk/{release}/qr', [WebApkController::class, 'qr'])->name('apk.qr');
+    Route::get('/apk/{release}/qr/download', [WebApkController::class, 'qrDownload'])->name('apk.qr.download');
     Route::post('/apk/{release}/activate', [WebApkController::class, 'activate'])->name('apk.activate');
     Route::delete('/apk/{release}', [WebApkController::class, 'destroy'])->name('apk.destroy');
+
+    Route::get('/uploads/progress/{token}', [WebUploadController::class, 'progress'])->name('uploads.progress');
 
     Route::get('/settings', [WebSettingController::class, 'edit'])->name('settings.edit');
     Route::put('/settings', [WebSettingController::class, 'update'])->name('settings.update');

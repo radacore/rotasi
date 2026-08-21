@@ -44,6 +44,9 @@ class WebAdminTest extends TestCase
     public function test_booklet_upload_and_activate_flow(): void
     {
         Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn('booklets/fake-booklet.pdf');
+        });
 
         $admin = $this->admin();
         $this->actingAs($admin);
@@ -64,7 +67,8 @@ class WebAdminTest extends TestCase
 
         $booklet = \App\Models\BookletRelease::where('title', 'Booklet Web')->first();
         $this->assertNotNull($booklet);
-        Storage::disk('media')->assertExists($booklet->file_path);
+        $this->assertEquals('booklets/fake-booklet.pdf', $booklet->file_path);
+        $this->assertNotNull($booklet->file_url);
 
         $this->post("/booklet/{$booklet->id}/activate")->assertRedirect();
         $this->assertDatabaseHas('booklet_releases', ['id' => $booklet->id, 'is_active' => true]);
@@ -84,9 +88,9 @@ class WebAdminTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin);
 
-        $disk = \Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
-        $disk->shouldReceive('putFile')->once()->andReturn(false);
-        \Illuminate\Support\Facades\Storage::shouldReceive('disk')->with('media')->andReturn($disk);
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andThrow(new \RuntimeException('s3 down'));
+        });
 
         $file = UploadedFile::fake()->create('booklet-gagal.pdf', 1024, 'application/pdf');
 
@@ -94,6 +98,48 @@ class WebAdminTest extends TestCase
             ->assertSessionHasErrors('file');
 
         $this->assertDatabaseMissing('booklet_releases', ['title' => 'Gagal Upload']);
+    }
+
+    public function test_booklet_upload_responds_json_for_ajax(): void
+    {
+        Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn('booklets/fake-json.pdf');
+        });
+
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $path = tempnam(sys_get_temp_dir(), 'booklet');
+        file_put_contents($path, "%PDF-1.4\n%âãÏÓ\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n");
+        $file = new UploadedFile($path, 'booklet-json.pdf', 'application/pdf', null, true);
+
+        $this->postJson('/booklet', [
+            'title' => 'Booklet JSON',
+            'file' => $file,
+        ])->assertOk()
+            ->assertJson(['message' => 'Booklet diunggah.'])
+            ->assertJsonPath('release.title', 'Booklet JSON');
+
+        $this->assertDatabaseHas('booklet_releases', ['title' => 'Booklet JSON']);
+    }
+
+    public function test_booklet_upload_responds_json_error_for_failed_storage(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andThrow(new \RuntimeException('s3 down'));
+        });
+
+        $file = UploadedFile::fake()->create('booklet-gagal-json.pdf', 1024, 'application/pdf');
+
+        $this->postJson('/booklet', ['title' => 'Gagal JSON', 'file' => $file])
+            ->assertStatus(422)
+            ->assertJson(['message' => 'Upload file ke penyimpanan gagal. Silakan coba lagi.']);
+
+        $this->assertDatabaseMissing('booklet_releases', ['title' => 'Gagal JSON']);
     }
 
     public function test_midwife_crud_flow(): void
@@ -141,23 +187,115 @@ class WebAdminTest extends TestCase
         $this->assertDatabaseMissing('midwives', ['name' => 'Bidan Web']);
     }
 
-    public function test_apk_and_settings_pages(): void
+    public function test_apk_upload_stores_to_media_disk_and_qr_routes(): void
     {
+        Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn('apk-releases/fake-rotasi.apk');
+        });
+
         $admin = $this->admin();
         $this->actingAs($admin);
 
         $this->get('/apk')->assertOk();
+
+        $path = tempnam(sys_get_temp_dir(), 'apk');
+        file_put_contents($path, 'PK' . random_bytes(128));
+        $file = new UploadedFile($path, 'rotasi.apk', 'application/vnd.android.package-archive', null, true);
+
         $this->post('/apk', [
-            'version_code' => 10,
-            'version_name' => '1.0.10',
-            'download_url' => 'https://example.com/app.apk',
+            'version_code' => 11,
+            'version_name' => '1.1.0',
+            'release_notes' => 'Rilis QR',
+            'apk' => $file,
+            'is_active' => '1',
         ])->assertRedirect('/apk');
+
+        $this->assertDatabaseHas('apk_releases', ['version_code' => 11, 'version_name' => '1.1.0', 'is_active' => true]);
+
+        $release = \App\Models\ApkRelease::where('version_code', 11)->first();
+        $this->assertNotNull($release);
+        $this->assertNotNull($release->file_path);
+        $this->assertEquals('apk-releases/fake-rotasi.apk', $release->file_path);
+        $this->assertEquals(Storage::disk('media')->url($release->file_path), $release->download_url);
+
+        $this->get("/apk/{$release->id}/qr")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png');
+
+        $response = $this->get("/apk/{$release->id}/qr/download");
+        $response->assertOk();
+        $this->assertStringContainsString('attachment;', $response->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith("\x89PNG", $response->content());
 
         $this->get('/settings')->assertOk();
         $this->put('/settings', [
             'puskesmas_name' => 'Puskesmas Test',
             'kick_threshold' => 3,
         ])->assertRedirect('/settings');
+    }
+
+    public function test_apk_upload_accepts_external_download_url(): void
+    {
+        Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class);
+
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $this->post('/apk', [
+            'version_code' => 12,
+            'version_name' => '1.2.0',
+            'download_url' => 'https://example.com/app.apk',
+        ])->assertRedirect('/apk');
+
+        $this->assertDatabaseHas('apk_releases', ['version_code' => 12, 'file_path' => null, 'download_url' => 'https://example.com/app.apk']);
+    }
+
+    public function test_apk_upload_fails_without_silent_broken_record(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andThrow(new \RuntimeException('s3 down'));
+        });
+
+        $file = UploadedFile::fake()->create('apk-gagal.apk', 1024, 'application/vnd.android.package-archive');
+
+        $this->post('/apk', [
+            'version_code' => 99,
+            'version_name' => '9.9.0',
+            'apk' => $file,
+        ])->assertSessionHasErrors('apk');
+
+        $this->assertDatabaseMissing('apk_releases', ['version_code' => 99]);
+    }
+
+    public function test_upload_progress_endpoint_reports_cached_progress(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        \Illuminate\Support\Facades\Cache::put(
+            \App\Services\S3UploadWithProgress::PROGRESS_PREFIX.'demo-token',
+            ['uploaded' => 5242880, 'total' => 10485760],
+            now()->addMinutes(5),
+        );
+
+        $this->get('/uploads/progress/demo-token')
+            ->assertOk()
+            ->assertJson(['uploaded' => 5242880, 'total' => 10485760, 'percent' => 50]);
+    }
+
+    public function test_upload_progress_endpoint_returns_zero_for_unknown_token(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $this->get('/uploads/progress/tidak-ada')
+            ->assertOk()
+            ->assertJson(['uploaded' => 0, 'total' => 0, 'percent' => 0]);
     }
 
     public function test_patients_and_sync_log_pages(): void

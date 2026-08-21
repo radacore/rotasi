@@ -1,6 +1,7 @@
-/// Booklet edukasi PDF (FR-09) — satu versi aktif dikelola web admin.
+/// Booklet edukasi PDF (FR-09) — beberapa versi aktif dikelola web admin.
 class Booklet {
   const Booklet({
+    required this.id,
     required this.title,
     required this.version,
     required this.fileUrl,
@@ -10,6 +11,7 @@ class Booklet {
     this.downloadedAt,
   });
 
+  final int id;
   final String title;
   final String version;
   final String fileUrl;
@@ -22,11 +24,12 @@ class Booklet {
 
   bool get isDownloaded => localPath != null;
 
-  String get fileName => 'rotasi_edukasi_$version.pdf';
+  String get fileName => 'booklet_${id}_v$version.pdf';
 
   factory Booklet.fromRemote(Map<String, dynamic> data) {
     final rawVersion = data['version'];
     return Booklet(
+      id: (data['id'] as num?)?.toInt() ?? 1,
       title: data['title'] as String? ?? 'Booklet Edukasi',
       version: rawVersion == null
           ? '1'
@@ -43,6 +46,7 @@ class Booklet {
 
   factory Booklet.fromMap(Map<String, dynamic> map) {
     return Booklet(
+      id: map['id'] as int,
       title: map['title'] as String,
       version: map['version'] as String,
       fileUrl: map['file_url'] as String,
@@ -59,7 +63,7 @@ class Booklet {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': 1,
+      'id': id,
       'title': title,
       'version': version,
       'file_url': fileUrl,
@@ -71,6 +75,7 @@ class Booklet {
   }
 
   Booklet copyWith({
+    int? id,
     String? title,
     String? version,
     String? fileUrl,
@@ -80,6 +85,7 @@ class Booklet {
     DateTime? downloadedAt,
   }) {
     return Booklet(
+      id: id ?? this.id,
       title: title ?? this.title,
       version: version ?? this.version,
       fileUrl: fileUrl ?? this.fileUrl,

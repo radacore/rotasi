@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BookletRelease;
+use App\Services\S3UploadWithProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class BookletReleaseController extends Controller
 {
+    public function __construct(private S3UploadWithProgress $uploads)
+    {
+    }
+
     public function index()
     {
         $items = BookletRelease::orderByDesc('version')->paginate(20);
@@ -51,12 +56,30 @@ class BookletReleaseController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'file' => ['required', 'file', 'mimes:pdf', 'max:30720'],
             'is_active' => ['nullable', 'boolean'],
+            'upload_token' => ['nullable', 'string', 'max:64'],
         ]);
 
         $file = $request->file('file');
         $disk = Storage::disk('media');
 
-        $path = $disk->putFile('booklets', $file, 'public');
+        try {
+            $path = $this->uploads->upload(
+                'booklets',
+                $file->getPathname(),
+                str()->random(40).'.'.$file->getClientOriginalExtension(),
+                $file->getSize(),
+                $request->string('upload_token', ''),
+                $file->getClientOriginalName(),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->fail('Upload file ke penyimpanan gagal. Silakan coba lagi.', 422, 'upload_failed');
+        }
+
+        if (! $path) {
+            return $this->fail('Upload file ke penyimpanan gagal. Silakan coba lagi.', 422, 'upload_failed');
+        }
 
         $version = (int) BookletRelease::max('version') + 1;
 
@@ -96,7 +119,7 @@ class BookletReleaseController extends Controller
             'id' => $release->id,
             'version' => $release->version,
             'is_active' => $release->is_active,
-        ], 'Versi aktif diperbarui');
+        ], 'Booklet diaktifkan');
     }
 
     public function deactivate(int $id)

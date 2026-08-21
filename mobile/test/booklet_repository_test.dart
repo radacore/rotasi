@@ -41,14 +41,16 @@ class _FakeHttpClient extends http.BaseClient {
 
 String _remoteJson({String version = '1.0'}) => jsonEncode({
       'success': true,
-      'data': {
-        'id': 1,
-        'title': 'Panduan Ibu Hamil',
-        'version': version,
-        'file_url': 'http://x/storage/booklets/b.pdf',
-        'file_size': 1024,
-        'uploaded_at': '2026-08-01 10:00:00',
-      },
+      'data': [
+        {
+          'id': 1,
+          'title': 'Panduan Ibu Hamil',
+          'version': version,
+          'file_url': 'http://x/storage/booklets/b.pdf',
+          'file_size': 1024,
+          'uploaded_at': '2026-08-01 10:00:00',
+        },
+      ],
     });
 
 void main() {
@@ -80,8 +82,8 @@ void main() {
     );
   }
 
-  test('getLocal awalnya null', () async {
-    expect(await repo().getLocal(), isNull);
+  test('getAllLocal awalnya kosong', () async {
+    expect(await repo().getAllLocal(), isEmpty);
   });
 
   test('ensureSeeded menyalin PDF bawaan & menyimpan metadata', () async {
@@ -92,53 +94,57 @@ void main() {
     expect(File(seeded.localPath!).existsSync(), true);
     expect(p.basename(seeded.localPath!), 'rotasi_edukasi_1.pdf');
 
-    final stored = await r.getLocal();
-    expect(stored, isNotNull);
-    expect(stored!.version, '0');
+    final stored = await r.getAllLocal();
+    expect(stored, hasLength(1));
+    expect(stored.first.id, 1);
+    expect(stored.first.version, '0');
   });
 
   test('ensureSeeded tidak menimpa booklet yang sudah ada', () async {
     final r = repo();
     await r.ensureSeeded();
-    final first = await r.getLocal();
+    final first = await r.getAllLocal();
 
     expect(await r.ensureSeeded(), isNull);
-    final second = await r.getLocal();
-    expect(second!.localPath, first!.localPath);
+    final second = await r.getAllLocal();
+    expect(second.first.localPath, first.first.localPath);
   });
 
-  test('saveMeta + getLocal roundtrip', () async {
+  test('saveMeta + getAllLocal roundtrip', () async {
     final r = repo();
     final b = Booklet(
+      id: 9,
       title: 'Panduan',
       version: '1.0',
       fileUrl: 'http://x/b.pdf',
     );
     await r.saveMeta(b);
-    final stored = await r.getLocal();
-    expect(stored, isNotNull);
-    expect(stored!.title, 'Panduan');
-    expect(stored.version, '1.0');
+    final stored = await r.getAllLocal();
+    expect(stored, hasLength(1));
+    expect(stored.first.title, 'Panduan');
+    expect(stored.first.version, '1.0');
+    expect(stored.first.id, 9);
   });
 
-  test('fetchRemote versi baru -> needsDownload true', () async {
+  test('fetchAll versi baru -> needsDownload true', () async {
     final r = repo(api: _FakeApi(200, _remoteJson(version: '2.0')));
-    final result = await r.fetchRemote();
-    expect(result.meta, isNotNull);
-    expect(result.meta!.version, '2.0');
-    expect(result.needsDownload, true);
+    final result = await r.fetchAll();
+    expect(result.booklets, hasLength(1));
+    expect(result.booklets.first.version, '2.0');
+    expect(result.needsDownload, contains(1));
 
-    final stored = await r.getLocal();
-    expect(stored!.version, '2.0');
+    final stored = await r.getAllLocal();
+    expect(stored.first.version, '2.0');
   });
 
-  test('fetchRemote versi sama + file sama -> needsDownload false', () async {
+  test('fetchAll versi sama + file sama -> needsDownload false', () async {
     final r = repo(api: _FakeApi(200, _remoteJson(version: '1.0')));
-    final existing = File('${tempDir.path}/rotasi_edukasi_1.0.pdf');
+    final existing = File('${tempDir.path}/booklet_1_v1.0.pdf');
     existing.writeAsBytesSync([1, 2, 3]);
 
     await r.saveMeta(
       Booklet(
+        id: 1,
         title: 'Panduan',
         version: '1.0',
         fileUrl: 'http://x/storage/booklets/b.pdf',
@@ -147,18 +153,19 @@ void main() {
       ),
     );
 
-    final result = await r.fetchRemote();
-    expect(result.needsDownload, false);
-    expect(result.meta!.localPath, existing.path);
+    final result = await r.fetchAll();
+    expect(result.needsDownload, isEmpty);
+    expect(result.booklets.first.localPath, existing.path);
   });
 
-  test('fetchRemote versi sama tapi file beda -> needsDownload true', () async {
+  test('fetchAll versi sama tapi file beda -> needsDownload true', () async {
     final r = repo(api: _FakeApi(200, _remoteJson(version: '1.0')));
-    final existing = File('${tempDir.path}/rotasi_edukasi_1.0.pdf');
+    final existing = File('${tempDir.path}/booklet_1_v1.0.pdf');
     existing.writeAsBytesSync([1, 2, 3]);
 
     await r.saveMeta(
       Booklet(
+        id: 1,
         title: 'Panduan',
         version: '1.0',
         fileUrl: 'http://x/old.pdf',
@@ -167,14 +174,55 @@ void main() {
       ),
     );
 
-    final result = await r.fetchRemote();
-    expect(result.needsDownload, true);
-    expect(result.meta!.localPath, isNull);
+    final result = await r.fetchAll();
+    expect(result.needsDownload, contains(1));
+    expect(result.booklets.first.localPath, isNull);
+  });
+
+  test('fetchAll mengembalikan semua booklet aktif dari server', () async {
+    final body = jsonEncode({
+      'success': true,
+      'data': [
+        {
+          'id': 2,
+          'title': 'Booklet Dua',
+          'version': '1.0',
+          'file_url': 'http://x/dua.pdf',
+          'file_size': 2048,
+          'uploaded_at': '2026-08-01 10:00:00',
+        },
+        {
+          'id': 3,
+          'title': 'Booklet Tiga',
+          'version': '2.0',
+          'file_url': 'http://x/tiga.pdf',
+          'file_size': 4096,
+          'uploaded_at': '2026-08-02 10:00:00',
+        },
+      ],
+    });
+    final r = repo(api: _FakeApi(200, body));
+    final result = await r.fetchAll();
+    expect(result.booklets, hasLength(2));
+    expect(result.booklets.map((b) => b.id), [2, 3]);
+    expect(result.needsDownload, {2, 3});
+  });
+
+  test('fetchAll tanpa booklet aktif -> memakai metadata lokal', () async {
+    final r = repo(api: _FakeApi(200, jsonEncode({'success': true, 'data': []})));
+    await r.saveMeta(
+      Booklet(id: 1, title: 'Panduan', version: '1.0', fileUrl: 'http://x/b.pdf'),
+    );
+    final result = await r.fetchAll();
+    expect(result.booklets, hasLength(1));
+    expect(result.booklets.first.title, 'Panduan');
+    expect(result.needsDownload, isEmpty);
   });
 
   test('download menulis file & memperbarui metadata', () async {
     final r = repo(httpClient: _FakeHttpClient(200, utf8.encode('%PDF-hello')));
     final meta = Booklet(
+      id: 4,
       title: 'Panduan',
       version: '1.0',
       fileUrl: 'http://x/b.pdf',
@@ -185,27 +233,28 @@ void main() {
     expect(updated.localPath, isNotNull);
     expect(File(updated.localPath!).existsSync(), true);
     expect(File(updated.localPath!).readAsStringSync(), '%PDF-hello');
+    expect(p.basename(updated.localPath!), 'booklet_4_v1.0.pdf');
 
-    final stored = await r.getLocal();
-    expect(stored!.localPath, updated.localPath);
+    final stored = await r.getAllLocal();
+    expect(stored.first.localPath, updated.localPath);
   });
 
   test('download gagal saat server error -> null', () async {
     final r = repo(httpClient: _FakeHttpClient(500, []));
     final updated = await r.download(
-      Booklet(title: 'Panduan', version: '1.0', fileUrl: 'http://x/b.pdf'),
+      Booklet(id: 1, title: 'Panduan', version: '1.0', fileUrl: 'http://x/b.pdf'),
     );
     expect(updated, isNull);
   });
 
-  test('fetchRemote offline (gagal) -> memakai metadata lokal', () async {
+  test('fetchAll offline (gagal) -> memakai metadata lokal', () async {
     final r = repo();
     await r.saveMeta(
-      Booklet(title: 'Panduan', version: '1.0', fileUrl: 'http://x/b.pdf'),
+      Booklet(id: 1, title: 'Panduan', version: '1.0', fileUrl: 'http://x/b.pdf'),
     );
-    final result = await r.fetchRemote();
-    expect(result.meta, isNotNull);
-    expect(result.meta!.version, '1.0');
-    expect(result.needsDownload, false);
+    final result = await r.fetchAll();
+    expect(result.booklets, hasLength(1));
+    expect(result.booklets.first.version, '1.0');
+    expect(result.needsDownload, isEmpty);
   });
 }

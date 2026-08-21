@@ -15,8 +15,8 @@ import 'booklet.dart';
 
 /// Pustaka edukasi offline (FR-09).
 ///
-/// Menyimpan satu booklet aktif beserta status unduhan. Saat online,
-/// [fetchRemote] membandingkan versi server; bila berubah, [download]
+/// Menyimpan booklet aktif beserta status unduhan masing-masing. Saat online,
+/// [fetchAll] membandingkan versi server per booklet; bila berubah, [download]
 /// mengambil PDF terbaru dan file lama tetap tersimpan.
 class BookletRepository {
   BookletRepository({
@@ -34,11 +34,10 @@ class BookletRepository {
   final http.Client _http;
   final Future<Directory> Function() _directoryProvider;
 
-  Future<Booklet?> getLocal() async {
+  Future<List<Booklet>> getAllLocal() async {
     final db = await AppDatabase.instance;
-    final rows = await db.query('booklets', where: 'id = 1', limit: 1);
-    if (rows.isEmpty) return null;
-    return Booklet.fromMap(rows.first);
+    final rows = await db.query('booklets', orderBy: 'id ASC');
+    return rows.map(Booklet.fromMap).toList();
   }
 
   Future<void> saveMeta(Booklet booklet) async {
@@ -56,10 +55,11 @@ class BookletRepository {
   /// Mengembalikan booklet yang disemai, atau null bila sudah ada / gagal.
   /// Versi server akan menimpanya (dan mengunduh PDF baru) saat online.
   Future<Booklet?> ensureSeeded() async {
-    final existing = await getLocal();
-    if (existing?.localPath != null &&
-        await File(existing!.localPath!).exists()) {
-      return null;
+    final existing = await getAllLocal();
+    for (final b in existing) {
+      final path = b.localPath;
+      if (b.fileUrl != _seedAsset || path == null) continue;
+      if (await File(path).exists()) return null;
     }
     try {
       final data = await rootBundle.load(_seedAsset);
@@ -73,6 +73,7 @@ class BookletRepository {
         flush: true,
       );
       final seeded = Booklet(
+        id: 1,
         title: 'Booklet Edukasi',
         version: '0',
         fileUrl: _seedAsset,
@@ -87,47 +88,58 @@ class BookletRepository {
     }
   }
 
-  /// Ambil metadata booklet aktif dari server.
+  /// Ambil daftar booklet aktif dari server beserta status unduhan tiap item.
   ///
-  /// Mengembalikan `needsDownload=true` bila versi server berubah atau file
-  /// lokal belum ada. Saat offline, memakai data lokal yang ada.
-  Future<({Booklet? meta, bool needsDownload})> fetchRemote() async {
+  /// `needsDownload` berisi id booklet yang versi server-nya berubah atau file
+  /// lokal belum ada. Saat offline (atau tak ada booklet aktif), memakai
+  /// data lokal yang ada.
+  Future<({List<Booklet> booklets, Set<int> needsDownload})> fetchAll() async {
     try {
       await DeviceRegistrar(_api).ensureRegistered();
       final res = await _api.get(ApiEndpoints.booklet);
       if (res.statusCode >= 300) {
-        final local = await getLocal();
-        return (meta: local, needsDownload: false);
+        final local = await getAllLocal();
+        return (booklets: local, needsDownload: <int>{});
       }
       final data =
-          (jsonDecode(res.body) as Map<String, dynamic>)['data']
-              as Map<String, dynamic>;
-      final remote = Booklet.fromRemote(data);
-      final local = await getLocal();
+          (jsonDecode(res.body) as Map<String, dynamic>)['data'] as List<dynamic>;
+      if (data.isEmpty) {
+        final local = await getAllLocal();
+        return (booklets: local, needsDownload: <int>{});
+      }
 
-      final sameFile = local != null &&
-          local.version == remote.version &&
-          local.fileUrl == remote.fileUrl;
-      final fileExists = sameFile &&
-          local.localPath != null &&
-          await File(local.localPath!).exists();
+      final remotes = data
+          .map((e) => Booklet.fromRemote(e as Map<String, dynamic>))
+          .toList();
+      final locals = {
+        for (final b in await getAllLocal()) b.id: b,
+      };
 
-      final merged = sameFile
-          ? Booklet(
-              title: remote.title,
-              version: remote.version,
-              fileUrl: remote.fileUrl,
-              fileSize: remote.fileSize,
-              uploadedAt: remote.uploadedAt,
-              localPath: local.localPath,
-              downloadedAt: local.downloadedAt,
-            )
-          : remote;
-      await saveMeta(merged);
-      return (meta: merged, needsDownload: !(sameFile && fileExists));
+      final booklets = <Booklet>[];
+      final needsDownload = <int>{};
+      for (final remote in remotes) {
+        final local = locals[remote.id];
+        final sameFile = local != null &&
+            local.version == remote.version &&
+            local.fileUrl == remote.fileUrl;
+        final fileExists = sameFile &&
+            local.localPath != null &&
+            await File(local.localPath!).exists();
+
+        final merged = sameFile
+            ? remote.copyWith(
+                localPath: local.localPath,
+                downloadedAt: local.downloadedAt,
+              )
+            : remote;
+        await saveMeta(merged);
+        booklets.add(merged);
+        if (!(sameFile && fileExists)) needsDownload.add(remote.id);
+      }
+      return (booklets: booklets, needsDownload: needsDownload);
     } catch (_) {
-      final local = await getLocal();
-      return (meta: local, needsDownload: false);
+      final local = await getAllLocal();
+      return (booklets: local, needsDownload: <int>{});
     }
   }
 

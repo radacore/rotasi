@@ -4,7 +4,9 @@ import { router, useForm } from '@inertiajs/react';
 import PageHeader from '../../components/PageHeader';
 import Pagination from '../../components/Pagination';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { useToast } from '../../components/Toasts';
 import { DownloadIcon, PlusIcon, TrashIcon } from '../../components/icons';
+import axios from 'axios';
 
 const formatBytes = (bytes) => {
     if (!bytes) return '-';
@@ -14,7 +16,8 @@ const formatBytes = (bytes) => {
 };
 
 export default function BookletIndex({ releases, errors }) {
-    const { data, setData, post, processing } = useForm({
+    const toast = useToast();
+    const { data, setData, errors: formErrors, setError, reset } = useForm({
         title: '',
         file: null,
         is_active: true,
@@ -22,10 +25,83 @@ export default function BookletIndex({ releases, errors }) {
 
     const [confirmTarget, setConfirmTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
 
-    const submit = (e) => {
+    const randomToken = () =>
+        [...Array(32)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+
+    const submit = async (e) => {
         e.preventDefault();
-        post('/booklet');
+
+        if (!data.file) {
+            setError('file', 'Pilih file PDF terlebih dahulu.');
+            return;
+        }
+
+        const token = randomToken();
+
+        const fd = new FormData();
+        fd.append('title', data.title);
+        fd.append('file', data.file);
+        fd.append('is_active', data.is_active ? '1' : '');
+        fd.append('upload_token', token);
+
+        setUploading(true);
+        setProgress(0);
+
+        let done = false;
+
+        const pollProgress = async () => {
+            while (!done) {
+                await new Promise((r) => setTimeout(r, 600));
+                try {
+                    const res = await axios.get(`/uploads/progress/${token}`, {
+                        headers: { Accept: 'application/json' },
+                    });
+                    const s3 = res.data;
+                    if (s3.total > 0) {
+                        setProgress(Math.min(100, Math.round(50 + (s3.percent / 100) * 50)));
+                    }
+                } catch {
+                    // abaikan, lanjut polling
+                }
+            }
+        };
+
+        const post = axios.post('/booklet', fd, {
+            headers: { Accept: 'application/json' },
+            onUploadProgress: (evt) => {
+                if (evt.total) {
+                    setProgress(Math.min(50, Math.round((evt.loaded / evt.total) * 50)));
+                }
+            },
+        });
+        post.finally(() => {
+            done = true;
+        });
+
+        try {
+            await Promise.all([
+                post,
+                pollProgress(),
+            ]);
+            toast('Booklet berhasil diunggah.');
+            reset();
+            router.reload();
+        } catch (err) {
+            const resp = err.response?.data;
+            if (resp?.errors) {
+                for (const [key, messages] of Object.entries(resp.errors)) {
+                    setError(key, Array.isArray(messages) ? messages[0] : messages);
+                }
+            } else {
+                toast(resp?.message || 'Gagal mengunggah booklet.', 'danger');
+            }
+        } finally {
+            done = true;
+            setUploading(false);
+        }
     };
 
     const activate = (id) => router.post(`/booklet/${id}/activate`);
@@ -50,9 +126,9 @@ export default function BookletIndex({ releases, errors }) {
                 description="Kelola booklet PDF yang ditampilkan di aplikasi pasien."
             />
 
-            {errors?.delete && (
+            {formErrors?.delete && (
                 <div className="alert alert--danger">
-                    <p>{errors.delete}</p>
+                    <p>{formErrors.delete}</p>
                 </div>
             )}
 
@@ -72,9 +148,10 @@ export default function BookletIndex({ releases, errors }) {
                                         id="title"
                                         className="input"
                                         value={data.title}
+                                        disabled={uploading}
                                         onChange={(e) => setData('title', e.target.value)}
                                     />
-                                    {errors.title && <p className="field__error">{errors.title}</p>}
+                                    {formErrors.title && <p className="field__error">{formErrors.title}</p>}
                                 </div>
 
                                 <div className="field">
@@ -84,9 +161,10 @@ export default function BookletIndex({ releases, errors }) {
                                         type="file"
                                         accept=".pdf,application/pdf"
                                         className="input"
+                                        disabled={uploading}
                                         onChange={(e) => setData('file', e.target.files[0])}
                                     />
-                                    {errors.file && <p className="field__error">{errors.file}</p>}
+                                    {formErrors.file && <p className="field__error">{formErrors.file}</p>}
                                 </div>
                             </div>
 
@@ -97,16 +175,39 @@ export default function BookletIndex({ releases, errors }) {
                                         type="checkbox"
                                         className="checkbox"
                                         checked={data.is_active}
+                                        disabled={uploading}
                                         onChange={(e) => setData('is_active', e.target.checked)}
                                     />
                                     Jadikan versi aktif
                                 </label>
                             </div>
                         </div>
-                        <div className="card__footer">
-                            <button type="submit" className="button button--primary" disabled={processing}>
-                                <PlusIcon />
-                                Unggah Booklet
+                        <div className="card__footer flex flex-col gap-3">
+                            {uploading && (
+                                <div>
+                                    <div className="flex items-center justify-between text-sm mb-1">
+                                        <span className="text-muted-foreground truncate">
+                                            Mengunggah {data.file?.name}…
+                                        </span>
+                                        <span className="font-medium">{progress}%</span>
+                                    </div>
+                                    <div className="w-full h-2 rounded-full bg-background overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-150"
+                                            style={{ width: `${progress}%`, backgroundColor: '#2563eb' }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            <button type="submit" className="button button--primary" disabled={uploading}>
+                                {uploading ? (
+                                    <>Mengunggah… {progress}%</>
+                                ) : (
+                                    <>
+                                        <PlusIcon />
+                                        Unggah Booklet
+                                    </>
+                                )}
                             </button>
                         </div>
                     </form>

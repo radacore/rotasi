@@ -25,7 +25,6 @@ class BookletRelease extends Model
 
     public function activate(): void
     {
-        static::where('is_active', true)->update(['is_active' => false]);
         static::whereKey($this->id)->update(['is_active' => true]);
         $this->is_active = true;
     }

@@ -12,6 +12,7 @@ void main() {
         'file_size': 2048,
         'uploaded_at': '2026-08-01 10:00:00',
       });
+      expect(b.id, 3);
       expect(b.title, 'Panduan Ibu Hamil');
       expect(b.version, '1.2');
       expect(b.fileUrl, 'http://x/storage/booklets/abc.pdf');
@@ -36,17 +37,19 @@ void main() {
       expect(b.uploadedAt, isNotNull);
     });
 
-    test('fileName memakai versi', () {
+    test('fileName memakai id dan versi', () {
       final b = Booklet(
+        id: 7,
         title: 't',
         version: '2.0',
         fileUrl: 'http://x/a.pdf',
       );
-      expect(b.fileName, 'rotasi_edukasi_2.0.pdf');
+      expect(b.fileName, 'booklet_7_v2.0.pdf');
     });
 
     test('toMap/fromMap roundtrip', () {
       final b = Booklet(
+        id: 5,
         title: 't',
         version: '1.1',
         fileUrl: 'http://x/a.pdf',
@@ -56,6 +59,7 @@ void main() {
         downloadedAt: DateTime(2026, 8, 2),
       );
       final restored = Booklet.fromMap(b.toMap());
+      expect(restored.id, 5);
       expect(restored.title, 't');
       expect(restored.version, '1.1');
       expect(restored.fileUrl, 'http://x/a.pdf');
@@ -67,6 +71,7 @@ void main() {
 
     test('copyWith menimpa localPath', () {
       final b = Booklet(
+        id: 1,
         title: 't',
         version: '1',
         fileUrl: 'http://x/a.pdf',

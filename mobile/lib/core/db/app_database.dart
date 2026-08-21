@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static const _dbName = 'rotasi.db';
-  static const _dbVersion = 7;
+  static const _dbVersion = 8;
 
   static Database? _db;
 
@@ -62,6 +62,18 @@ class AppDatabase {
     }
     if (oldVersion < 7) {
       await _createBooklets(db);
+    }
+    if (oldVersion < 8) {
+      await db.execute('ALTER TABLE booklets RENAME TO booklets_v7');
+      await _createBooklets(db);
+      await db.execute('''
+        INSERT INTO booklets
+          (id, title, version, file_url, file_size, uploaded_at, local_path, downloaded_at)
+        SELECT
+          id, title, version, file_url, file_size, uploaded_at, local_path, downloaded_at
+        FROM booklets_v7
+      ''');
+      await db.execute('DROP TABLE booklets_v7');
     }
   }
 
@@ -166,7 +178,7 @@ class AppDatabase {
   static Future<void> _createBooklets(Database db) async {
     await db.execute('''
       CREATE TABLE booklets (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
+        id INTEGER PRIMARY KEY,
         title TEXT NOT NULL,
         version TEXT NOT NULL,
         file_url TEXT NOT NULL,

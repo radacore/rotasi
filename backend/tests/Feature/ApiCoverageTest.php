@@ -95,6 +95,9 @@ class ApiCoverageTest extends TestCase
     public function test_booklet_version_increments_on_upload(): void
     {
         Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->twice()->andReturn('booklets/fake-api.pdf');
+        });
         $token = $this->adminToken();
 
         $path = tempnam(sys_get_temp_dir(), 'booklet');
@@ -173,7 +176,10 @@ class ApiCoverageTest extends TestCase
 
     public function test_apk_file_upload(): void
     {
-        Storage::fake('public');
+        Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn('apk-releases/fake-api.apk');
+        });
         $token = $this->adminToken();
 
         $path = tempnam(sys_get_temp_dir(), 'apk');
@@ -189,7 +195,7 @@ class ApiCoverageTest extends TestCase
         $release = ApkRelease::where('version_code', 100)->first();
         $this->assertNotNull($release);
         $this->assertTrue($release->is_active);
-        Storage::disk('public')->assertExists($release->file_path);
+        $this->assertEquals('apk-releases/fake-api.apk', $release->file_path);
     }
 
     public function test_admin_media_upload_to_object_storage(): void

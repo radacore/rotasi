@@ -10,8 +10,8 @@ import 'booklet_viewer_page.dart';
 
 /// Pustaka Edukasi offline (FR-09).
 ///
-/// Menampilkan booklet aktif; PDF diunduh sekali saat online lalu tersedia
-/// penuh tanpa jaringan. Versi baru otomatis diunduh bila berubah.
+/// Menampilkan daftar booklet aktif; PDF diunduh sekali saat online lalu
+/// tersedia penuh tanpa jaringan. Versi baru otomatis diunduh bila berubah.
 class EducationPage extends StatefulWidget {
   const EducationPage({super.key, this.repository});
 
@@ -23,10 +23,10 @@ class EducationPage extends StatefulWidget {
 
 class _EducationPageState extends State<EducationPage> {
   late final BookletRepository _repository;
-  Booklet? _booklet;
+  List<Booklet> _booklets = [];
+  Set<int> _needsDownload = {};
+  final Set<int> _downloadingIds = {};
   bool _loading = true;
-  bool _downloading = false;
-  bool _needsDownload = false;
 
   @override
   void initState() {
@@ -36,39 +36,38 @@ class _EducationPageState extends State<EducationPage> {
   }
 
   Future<void> _load() async {
-    if (_booklet == null) setState(() => _loading = true);
-    final seeded = await _repository.ensureSeeded();
-    final local = seeded ?? await _repository.getLocal();
+    if (_booklets.isEmpty) setState(() => _loading = true);
+    await _repository.ensureSeeded();
+    final local = await _repository.getAllLocal();
     if (!mounted) return;
     setState(() {
-      if (local != null) _booklet = local;
+      if (local.isNotEmpty) _booklets = local;
       _loading = false;
     });
-    final remote = await _repository.fetchRemote();
+    final result = await _repository.fetchAll();
     if (!mounted) return;
     setState(() {
-      _booklet = remote.meta ?? _booklet;
-      _needsDownload = remote.needsDownload;
+      _booklets = result.booklets;
+      _needsDownload = result.needsDownload;
     });
   }
 
-  Future<void> _download() async {
-    final meta = _booklet;
-    if (meta == null) return;
-    setState(() => _downloading = true);
+  Future<void> _download(Booklet meta) async {
+    setState(() => _downloadingIds.add(meta.id));
     final updated = await _repository.download(meta);
     if (!mounted) return;
     setState(() {
-      _downloading = false;
+      _downloadingIds.remove(meta.id);
       if (updated != null) {
-        _booklet = updated;
-        _needsDownload = false;
+        final index = _booklets.indexWhere((b) => b.id == updated.id);
+        if (index != -1) _booklets[index] = updated;
+        _needsDownload.remove(updated.id);
       }
     });
   }
 
-  void _open() {
-    final path = _booklet?.localPath;
+  void _open(Booklet booklet) {
+    final path = booklet.localPath;
     if (path == null) return;
     // Push lewat root navigator agar layar full (bottom nav & FAB tertutup)
     // dan observer bisa menyembunyikan tombol "Hubungi Bidan".
@@ -76,7 +75,7 @@ class _EducationPageState extends State<EducationPage> {
       MaterialPageRoute(
         settings: const RouteSettings(name: bookletViewerRouteName),
         builder: (_) => BookletViewerPage(
-          title: _booklet!.title,
+          title: booklet.title,
           path: path,
         ),
       ),
@@ -96,17 +95,20 @@ class _EducationPageState extends State<EducationPage> {
                 children: [
                   _CoverageCard(),
                   const SizedBox(height: 12),
-                  if (_booklet == null)
+                  if (_booklets.isEmpty)
                     _EmptyView(onRefresh: _load)
                   else
-                    _BookletCard(
-                      booklet: _booklet!,
-                      needsDownload: _needsDownload,
-                      downloading: _downloading,
-                      onDownload: _download,
-                      onOpen: _open,
-                      onRefresh: _load,
-                    ),
+                    for (var i = 0; i < _booklets.length; i++) ...[
+                      _BookletCard(
+                        booklet: _booklets[i],
+                        needsDownload: _needsDownload.contains(_booklets[i].id),
+                        downloading: _downloadingIds.contains(_booklets[i].id),
+                        onDownload: () => _download(_booklets[i]),
+                        onOpen: () => _open(_booklets[i]),
+                        onRefresh: _load,
+                      ),
+                      if (i < _booklets.length - 1) const SizedBox(height: 12),
+                    ],
                 ],
               ),
             ),
@@ -233,15 +235,17 @@ class _BookletCard extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        available
-                            ? 'Tersedia offline'
-                            : 'Perlu diunduh agar bisa dibuka offline',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: available
-                                  ? AppColors.normal
-                                  : AppColors.textSecondary,
-                            ),
+                      Expanded(
+                        child: Text(
+                          available
+                              ? 'Tersedia offline'
+                              : 'Perlu diunduh',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: available
+                                    ? AppColors.normal
+                                    : AppColors.textSecondary,
+                              ),
+                        ),
                       ),
                     ],
                   ),
@@ -255,7 +259,7 @@ class _BookletCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                         SizedBox(width: 8),
-                        Text('Mengunduh PDF…'),
+                        Text('Mengunduh Booklet…'),
                       ],
                     )
                   else
@@ -271,7 +275,7 @@ class _BookletCard extends StatelessWidget {
                               : OutlinedButton.icon(
                                   onPressed: onDownload,
                                   icon: const Icon(Icons.download_outlined),
-                                  label: const Text('Unduh PDF'),
+                                  label: const Text('Unduh Booklet'),
                                 ),
                         ),
                         IconButton(

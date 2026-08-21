@@ -80,7 +80,7 @@ class ApiTest extends TestCase
 
         $this->withToken($token)->getJson('/api/v1/booklet')
             ->assertOk()
-            ->assertJsonPath('data.version', 3);
+            ->assertJsonPath('data.0.version', 3);
 
         $this->withToken($token)->getJson('/api/v1/settings')->assertOk();
         $this->withToken($token)->getJson('/api/v1/midwives')->assertOk();
@@ -90,6 +90,9 @@ class ApiTest extends TestCase
     public function test_admin_can_manage_booklet(): void
     {
         Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn('booklets/fake-admin.pdf');
+        });
 
         $admin = User::factory()->create(['password' => bcrypt('secret123')]);
 
@@ -122,7 +125,7 @@ class ApiTest extends TestCase
 
         $release = BookletRelease::find($id);
         $this->assertNotNull($release);
-        Storage::disk('media')->assertExists($release->file_path);
+        $this->assertEquals('booklets/fake-admin.pdf', $release->file_path);
 
         $this->withToken($token)->putJson("/api/admin/booklet-releases/{$id}/deactivate")
             ->assertOk()
@@ -130,6 +133,48 @@ class ApiTest extends TestCase
 
         $this->withToken($token)->deleteJson("/api/admin/booklet-releases/{$id}")->assertOk();
         $this->assertNull(BookletRelease::find($id));
+    }
+
+    public function test_multiple_active_booklets_are_all_returned(): void
+    {
+        $register = $this->postJson('/api/v1/device/register', [
+            'android_id' => 'device-booklet',
+            'app_version' => '1.0.0',
+        ]);
+        $token = $register->json('data.token');
+
+        $first = BookletRelease::create([
+            'title' => 'Booklet Satu',
+            'version' => 1,
+            'file_path' => 'booklets/satu.pdf',
+            'file_url' => 'https://example.com/satu.pdf',
+            'file_size' => 1024,
+            'is_active' => true,
+            'uploaded_at' => now(),
+        ]);
+
+        $second = BookletRelease::create([
+            'title' => 'Booklet Dua',
+            'version' => 2,
+            'file_path' => 'booklets/dua.pdf',
+            'file_url' => 'https://example.com/dua.pdf',
+            'file_size' => 2048,
+            'is_active' => true,
+            'uploaded_at' => now(),
+        ]);
+
+        $response = $this->withToken($token)->getJson('/api/v1/booklet');
+        $response->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $second->id)
+            ->assertJsonPath('data.1.id', $first->id);
+
+        $first->deactivate();
+
+        $this->withToken($token)->getJson('/api/v1/booklet')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $second->id);
     }
 
     public function test_admin_requires_auth(): void
@@ -144,6 +189,8 @@ class ApiTest extends TestCase
 
     public function test_apk_release_activate(): void
     {
+        $this->mock(\App\Services\S3UploadWithProgress::class);
+
         $admin = User::factory()->create(['password' => bcrypt('secret123')]);
         $token = $this->postJson('/api/admin/login', [
             'email' => $admin->email, 'password' => 'secret123',

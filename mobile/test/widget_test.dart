@@ -588,16 +588,16 @@ void main() {
 
     testWidgets('booklet terunduh -> status tersedia offline + Buka Booklet',
         (tester) async {
-      final repo = FakeBookletRepository(
-        booklet: Booklet(
+      final repo = FakeBookletRepository(booklets: [
+        Booklet(
+          id: 1,
           title: 'Panduan Ibu Hamil',
           version: '1.0',
           fileUrl: 'http://x/b.pdf',
           localPath: '/tmp/b.pdf',
           downloadedAt: DateTime(2026, 8, 1),
         ),
-        needsDownload: false,
-      );
+      ]);
       await pumpEdu(tester, repo);
 
       expect(find.text('Panduan Ibu Hamil'), findsOneWidget);
@@ -605,22 +605,23 @@ void main() {
       expect(find.text('Buka Booklet'), findsOneWidget);
     });
 
-    testWidgets('versi baru -> tombol Unduh PDF, setelah unduh jadi Buka Booklet',
+    testWidgets('versi baru -> tombol Unduh Booklet, setelah unduh jadi Buka Booklet',
         (tester) async {
-      final repo = FakeBookletRepository(
-        booklet: Booklet(
+      final repo = FakeBookletRepository(booklets: [
+        Booklet(
+          id: 2,
           title: 'Panduan Ibu Hamil',
           version: '2.0',
           fileUrl: 'http://x/b.pdf',
         ),
-        needsDownload: true,
-      );
+      ], needsDownload: {2});
       await pumpEdu(tester, repo);
 
-      expect(find.text('Perlu diunduh agar bisa dibuka offline'), findsOneWidget);
-      expect(find.text('Unduh PDF'), findsOneWidget);
+      expect(find.text('Perlu diunduh'), findsOneWidget);
+      expect(find.text('Unduh Booklet'), findsOneWidget);
 
       repo.downloadResult = Booklet(
+        id: 2,
         title: 'Panduan Ibu Hamil',
         version: '2.0',
         fileUrl: 'http://x/b.pdf',
@@ -628,7 +629,7 @@ void main() {
         downloadedAt: DateTime(2026, 8, 2),
       );
 
-      await tester.tap(find.text('Unduh PDF'));
+      await tester.tap(find.text('Unduh Booklet'));
       await tester.pumpAndSettle();
 
       expect(repo.downloadCount, 1);
@@ -636,8 +637,33 @@ void main() {
       expect(find.text('Buka Booklet'), findsOneWidget);
     });
 
+    testWidgets('menampilkan semua booklet aktif', (tester) async {
+      final repo = FakeBookletRepository(booklets: [
+        Booklet(
+          id: 1,
+          title: 'Booklet Nutrisi',
+          version: '1.0',
+          fileUrl: 'http://x/nutrisi.pdf',
+          localPath: '/tmp/nutrisi.pdf',
+          downloadedAt: DateTime(2026, 8, 1),
+        ),
+        Booklet(
+          id: 2,
+          title: 'Booklet Stres',
+          version: '1.0',
+          fileUrl: 'http://x/stres.pdf',
+        ),
+      ], needsDownload: {2});
+      await pumpEdu(tester, repo);
+
+      expect(find.text('Booklet Nutrisi'), findsOneWidget);
+      expect(find.text('Booklet Stres'), findsOneWidget);
+      expect(find.text('Buka Booklet'), findsOneWidget);
+      expect(find.text('Unduh Booklet'), findsOneWidget);
+    });
+
     testWidgets('tanpa booklet -> ajakan periksa pembaruan', (tester) async {
-      final repo = FakeBookletRepository(booklet: null, needsDownload: false);
+      final repo = FakeBookletRepository(booklets: []);
       await pumpEdu(tester, repo);
 
       expect(find.text('Belum ada booklet aktif'), findsOneWidget);
@@ -1158,24 +1184,31 @@ class FakeSettingRepository extends SettingRepository {
 }
 
 class FakeBookletRepository extends BookletRepository {
-  FakeBookletRepository({this.booklet, required this.needsDownload});
+  FakeBookletRepository({
+    this.booklets = const [],
+    this.needsDownload = const <int>{},
+  });
 
-  Booklet? booklet;
-  bool needsDownload;
+  List<Booklet> booklets;
+  Set<int> needsDownload;
   Booklet? downloadResult;
   int downloadCount = 0;
 
   @override
-  Future<Booklet?> getLocal() async => booklet;
+  Future<List<Booklet>> getAllLocal() async => booklets;
 
   @override
-  Future<({Booklet? meta, bool needsDownload})> fetchRemote() async =>
-      (meta: booklet, needsDownload: needsDownload);
+  Future<({List<Booklet> booklets, Set<int> needsDownload})> fetchAll() async =>
+      (booklets: booklets, needsDownload: needsDownload);
 
   @override
   Future<Booklet?> download(Booklet meta) async {
     downloadCount++;
-    return downloadResult ?? meta.copyWith(localPath: '/tmp/downloaded.pdf');
+    final result = downloadResult ?? meta.copyWith(localPath: '/tmp/downloaded.pdf');
+    booklets = [
+      for (final b in booklets) if (b.id == result.id) result else b,
+    ];
+    return result;
   }
 
   @override
