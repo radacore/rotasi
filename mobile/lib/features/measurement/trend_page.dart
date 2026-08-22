@@ -136,7 +136,7 @@ class _TrendPageState extends State<TrendPage> {
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : _data.isEmpty
-              ? _EmptyState(onRefresh: _load)
+              ? const _EmptyState()
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
@@ -455,9 +455,7 @@ class _InterpretationCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onRefresh});
-
-  final Future<void> Function() onRefresh;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -480,8 +478,6 @@ class _EmptyState extends StatelessWidget {
                 .bodyMedium
                 ?.copyWith(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: onRefresh, child: const Text('Muat Ulang')),
         ],
       ),
     );
