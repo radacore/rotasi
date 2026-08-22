@@ -28,13 +28,13 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
   String get _guidance {
     switch (widget.measurement.status) {
       case BpStatus.crisis:
-        return 'Segera hubungi faskes terdekat atau layanan darurat.';
+        return '≥140/90 mmHg (Buku KIA 2025). Segera ke faskes/layanan darurat.';
       case BpStatus.stage1:
-        return 'Periksa ulang secara rutin dan sampaikan hasil ke bidan.';
+        return 'Periksa ulang rutin dan sampaikan hasil ke bidan pada ANC berikutnya.';
       case BpStatus.elevated:
-        return 'Terus pantau. Hindari garam berlebih dan kelola stres.';
+        return 'Terus pantau Pagi & Sore. Kurangi garam, kelola stres.';
       case BpStatus.normal:
-        return 'Tekanan darah normal. Pertahankan pola hidup sehat.';
+        return 'Tekanan darah normal. Pertahankan pola hidup sehat & ANC 6x.';
     }
   }
 

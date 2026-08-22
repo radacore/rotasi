@@ -188,6 +188,29 @@ class _TrendPageState extends State<TrendPage> {
     };
 
     return [
+      Card(
+        margin: EdgeInsets.zero,
+        color: AppColors.skyLight,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Icon(Icons.menu_book_outlined,
+                  color: AppColors.primaryLight, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Buku KIA 2025: tensi wajib 6x ANC (K1-K6). Grafik harian '
+                  'Pagi & Sore membantu bidan melihat tren di antara kunjungan (≥140/90 rujuk).',
+                  style: TextStyle(fontSize: 12, height: 1.35),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
       _SummaryCard(days: days),
       const SizedBox(height: 12),
       SegmentedButton<int>(
