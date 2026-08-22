@@ -22,6 +22,9 @@ class BpRepository extends ChangeNotifier {
   final PatientRepository _patientRepository;
 
   /// Simpan sesi pengukuran ke SQLite lokal (offline-first).
+  ///
+  /// Bila profil masih `unknown` (belum dinilai karena belum ada tensi),
+  /// promosikan ke low/medium/high berdasarkan biodata setelah tensi pertama.
   Future<void> saveLocal(BpMeasurement measurement) async {
     final db = await AppDatabase.instance;
     await db.insert(
@@ -29,7 +32,29 @@ class BpRepository extends ChangeNotifier {
       measurement.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    await _promoteUnknownRiskIfNeeded(measurement);
     notifyListeners();
+  }
+
+  Future<void> _promoteUnknownRiskIfNeeded(BpMeasurement measurement) async {
+    try {
+      final patient = await _patientRepository.getLocal();
+      if (patient == null) return;
+      if (patient.riskLevel != RiskLevel.unknown) return;
+      final promoted = Patient.computeRiskLevel(
+        age: patient.age,
+        historyType: patient.historyType,
+        bmi: patient.bmi,
+        hasMeasurement: true,
+      );
+      final updated = patient.copyWith(
+        lastSystolic: measurement.avgSystolic,
+        lastDiastolic: measurement.avgDiastolic,
+        riskLevel: promoted,
+        synced: false,
+      );
+      await _patientRepository.saveLocal(updated);
+    } catch (_) {}
   }
 
   /// Ambil pengukuran terbaru (untuk roda status di beranda).

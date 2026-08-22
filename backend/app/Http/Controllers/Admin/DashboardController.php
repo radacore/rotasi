@@ -30,7 +30,7 @@ class DashboardController extends Controller
         $alertIds = collect($bpPatientIds)->merge($symptomPatientIds)->unique()->values();
         $attentionPatients = Patient::query()
             ->where(fn ($q) => $q->whereIn('risk_level', ['medium', 'high'])->orWhereIn('uuid', $alertIds))
-            ->orderByRaw("CASE risk_level WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END")
+            ->orderByRaw("CASE risk_level WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END")
             ->orderByDesc('updated_at')->limit(5)->get()
             ->map(fn (Patient $p) => [
                 'uuid' => $p->uuid, 'name' => $p->name, 'age' => $p->age,

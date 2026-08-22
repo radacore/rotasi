@@ -8,6 +8,7 @@ import { useToast } from '../../components/Toasts';
 import { HeartPulseIcon, EyeIcon, SearchIcon, TrashIcon } from '../../components/icons';
 
 const riskBadge = {
+    unknown: ['badge--neutral', 'Belum dinilai'],
     low: ['badge--success', 'Rendah'],
     medium: ['badge--warning', 'Sedang'],
     high: ['badge--danger', 'Tinggi'],
@@ -81,6 +82,7 @@ export default function PatientsIndex({ patients, filters }) {
                                     onChange={(e) => filterRisk(e.target.value)}
                                 >
                                     <option value="">Semua risiko</option>
+                                    <option value="unknown">Belum dinilai</option>
                                     <option value="low">Rendah</option>
                                     <option value="medium">Sedang</option>
                                     <option value="high">Tinggi</option>
@@ -138,7 +140,9 @@ export default function PatientsIndex({ patients, filters }) {
                                                                 </span>
                                                             </span>
                                                         ) : (
-                                                            '-'
+                                                            <span className="text-xs text-muted-foreground" title="Belum ada pengukuran">
+                                                                Belum ada pengukuran ({p.bp_count})
+                                                            </span>
                                                         )}
                                                     </td>
                                                     <td>{p.bp_count}</td>

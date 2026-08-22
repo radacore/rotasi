@@ -38,8 +38,24 @@ class SyncController extends Controller
         }
 
         BpRecord::create($r);
+        $this->promoteUnknownRisk($r['patient_uuid'], $r['avg_systolic'], $r['avg_diastolic']);
 
         return true;
+    }
+
+    private function promoteUnknownRisk(string $patientUuid, int $avgSys, int $avgDia): void
+    {
+        $patient = Patient::find($patientUuid);
+        if (! $patient || $patient->risk_level !== 'unknown') return;
+        $bmi = null;
+        if ($patient->height_cm && (float) $patient->height_cm > 0) {
+            $h = (float) $patient->height_cm / 100;
+            $bmi = (float) $patient->weight_kg / ($h * $h);
+        }
+        $high = ($patient->history_type === 'prior_preeclampsia') || ($patient->age >= 40) || ($bmi !== null && $bmi >= 35);
+        $med = ($patient->history_type === 'hypertension') || ($patient->history_type === 'family') || ($patient->age > 35) || ($bmi !== null && $bmi > 30);
+        $level = $high ? 'high' : ($med ? 'medium' : 'low');
+        $patient->update(['last_systolic' => $avgSys, 'last_diastolic' => $avgDia, 'risk_level' => $level]);
     }
 
     private function upsertSymptom(array $r): bool

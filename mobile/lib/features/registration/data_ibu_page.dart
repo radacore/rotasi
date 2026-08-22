@@ -116,6 +116,7 @@ class _DataIbuPageState extends State<DataIbuPage> {
         age: age,
         historyType: _historyType,
         bmi: bmi,
+        hasMeasurement: existing.lastSystolic != null && existing.lastDiastolic != null,
       ),
       phone: existing.phone,
       synced: false,

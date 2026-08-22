@@ -20,7 +20,7 @@ return new class extends Migration
             $table->smallInteger('last_systolic')->nullable();
             $table->smallInteger('last_diastolic')->nullable();
             $table->enum('history_type', ['none', 'hypertension', 'prior_preeclampsia', 'family'])->default('none');
-            $table->enum('risk_level', ['low', 'medium', 'high'])->default('low');
+            $table->enum('risk_level', ['unknown', 'low', 'medium', 'high'])->default('unknown');
             $table->string('phone', 20)->nullable();
             $table->timestamps();
             $table->index('risk_level');

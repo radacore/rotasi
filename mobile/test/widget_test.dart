@@ -252,7 +252,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.stored!.historyType, HistoryType.hypertension);
-      expect(repo.stored!.riskLevel, RiskLevel.medium);
+      // Pasien baru tanpa tensi -> unknown sampai tensi pertama; history tetap tersimpan
+      expect(repo.stored!.historyType, HistoryType.hypertension);
+      expect(repo.stored!.riskLevel, RiskLevel.unknown);
     });
   });
 

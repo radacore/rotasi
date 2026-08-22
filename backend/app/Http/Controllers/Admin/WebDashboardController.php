@@ -41,7 +41,7 @@ class WebDashboardController extends Controller
                 $q->whereIn('risk_level', ['medium', 'high'])
                     ->orWhereIn('uuid', $alertPatientIds);
             })
-            ->orderByRaw("CASE risk_level WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END")
+            ->orderByRaw("CASE risk_level WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END")
             ->orderByDesc('updated_at')
             ->limit(5)
             ->get()

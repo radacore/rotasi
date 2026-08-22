@@ -13,6 +13,7 @@ import {
 } from '../../components/icons';
 
 const riskBadge = {
+    unknown: ['badge--neutral', 'Belum dinilai'],
     low: ['badge--success', 'Rendah'],
     medium: ['badge--warning', 'Sedang'],
     high: ['badge--danger', 'Tinggi'],

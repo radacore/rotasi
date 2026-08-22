@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static const _dbName = 'rotasi.db';
-  static const _dbVersion = 8;
+  static const _dbVersion = 9;
 
   static Database? _db;
 
@@ -74,6 +74,17 @@ class AppDatabase {
         FROM booklets_v7
       ''');
       await db.execute('DROP TABLE booklets_v7');
+    }
+    if (oldVersion < 9) {
+      // Risiko default sebelumnya 'low' menyesatkan sebelum ada tensi.
+      // Migrasi: pasien tanpa tensi -> 'unknown' (Belum dinilai).
+      final hasBp = (await db.query('bp_measurements', limit: 1)).isNotEmpty;
+      if (!hasBp) {
+        await db.execute("UPDATE patients SET risk_level = 'unknown' WHERE risk_level = 'low'");
+      }
+      // Jika ada tensi tapi masih low palsu (tanpa tensi saat dibuat), tetap
+      // aman dipertahankan; promosi unknown->low/medium/high dilakukan di
+      // BpRepository saat tensi pertama tersimpan.
     }
   }
 

@@ -19,7 +19,11 @@ enum HistoryType {
 }
 
 /// Kategori risiko (FR-02). Dikirim bersama profil saat sinkronisasi.
+///
+/// `unknown` = belum ada pengukuran tensi — tampil sebagai "Belum dinilai"
+/// agar tidak memberi kesan aman palsu sebelum ada data TD.
 enum RiskLevel {
+  unknown('unknown', 'Belum dinilai'),
   low('low', 'Rendah'),
   medium('medium', 'Sedang'),
   high('high', 'Tinggi');
@@ -31,7 +35,7 @@ enum RiskLevel {
 
   static RiskLevel fromValue(String? value) => RiskLevel.values.firstWhere(
         (e) => e.value == value,
-        orElse: () => RiskLevel.low,
+        orElse: () => RiskLevel.unknown,
       );
 }
 
@@ -48,7 +52,7 @@ class Patient {
     this.lastSystolic,
     this.lastDiastolic,
     this.historyType = HistoryType.none,
-    this.riskLevel = RiskLevel.low,
+    this.riskLevel = RiskLevel.unknown,
     this.phone,
     this.synced = false,
   });
@@ -79,6 +83,7 @@ class Patient {
     HistoryType historyType = HistoryType.none,
     String? phone,
   }) {
+    final hasMeasurement = lastSystolic != null && lastDiastolic != null;
     return Patient(
       uuid: const Uuid().v4(),
       name: name,
@@ -94,6 +99,7 @@ class Patient {
         age: age,
         historyType: historyType,
         bmi: _bmiOf(weightKg: weightKg, heightCm: heightCm),
+        hasMeasurement: hasMeasurement,
       ),
       phone: phone,
     );
@@ -146,11 +152,16 @@ class Patient {
   /// kriteria NICE & KIA 2024:
   /// - tinggi: pernah preeklamsia, usia >= 40, IMT >= 35
   /// - sedang: hipertensi, riwayat turunan, usia > 35, IMT > 30
+  ///
+  /// Bila belum ada pengukuran tensi (`hasMeasurement == false`), kembalikan
+  /// [RiskLevel.unknown] agar UI tidak menampilkan "Rendah" yang menyesatkan.
   static RiskLevel computeRiskLevel({
     required int age,
     required HistoryType historyType,
     double? bmi,
+    bool hasMeasurement = false,
   }) {
+    if (!hasMeasurement) return RiskLevel.unknown;
     final highRisk = historyType == HistoryType.priorPreeclampsia ||
         age >= 40 ||
         (bmi != null && bmi >= 35);
@@ -183,6 +194,8 @@ class Patient {
   /// Rekomendasi konsultasi sesuai kategori risiko (FR-02).
   String get recommendation {
     switch (riskLevel) {
+      case RiskLevel.unknown:
+        return 'Belum ada pengukuran tensi. Lakukan pengukuran pertama untuk menilai risiko.';
       case RiskLevel.low:
         return 'Risiko rendah. Lanjutkan pola hidup sehat dan kontrol ANC rutin.';
       case RiskLevel.medium:

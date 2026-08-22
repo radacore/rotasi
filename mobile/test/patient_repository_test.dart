@@ -33,7 +33,7 @@ void main() {
     expect(stored.heightCm, 155);
     expect(stored.weightKg, 52.5);
     expect(stored.gestationalWeeks, 24);
-    expect(stored.riskLevel, RiskLevel.low);
+    expect(stored.riskLevel, RiskLevel.unknown);
     expect(stored.synced, isFalse);
   });
 }

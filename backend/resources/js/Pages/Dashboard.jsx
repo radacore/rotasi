@@ -11,8 +11,8 @@ import {
     UsersIcon,
 } from '../components/icons';
 
-const riskLabel = { low: 'Rendah', medium: 'Sedang', high: 'Tinggi' };
-const riskTone = { low: 'badge--success', medium: 'badge--warning', high: 'badge--danger' };
+const riskLabel = { unknown: 'Belum dinilai', low: 'Rendah', medium: 'Sedang', high: 'Tinggi' };
+const riskTone = { unknown: 'badge--neutral', low: 'badge--success', medium: 'badge--warning', high: 'badge--danger' };
 
 export default function Dashboard({ stats, attention_patients, recent_syncs }) {
     const { auth } = usePage().props;

@@ -109,7 +109,8 @@ class WebPatientController extends Controller
         $recommendation = match ($patient->risk_level) {
             'high' => 'Risiko tinggi. Segera konsultasikan ke tenaga kesehatan untuk penanganan khusus.',
             'medium' => 'Risiko sedang. Konsultasikan dengan bidan untuk pemantauan lebih ketat.',
-            default => 'Risiko rendah. Lanjutkan pola hidup sehat dan kontrol ANC rutin.',
+            'low' => 'Risiko rendah. Lanjutkan pola hidup sehat dan kontrol ANC rutin.',
+            default => 'Belum ada pengukuran tensi. Lakukan pengukuran pertama untuk menilai risiko.',
         };
 
         return inertia('Patients/Show', [

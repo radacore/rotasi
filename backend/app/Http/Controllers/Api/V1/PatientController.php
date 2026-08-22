@@ -32,7 +32,7 @@ class PatientController extends Controller
             'last_systolic' => ['nullable', 'integer', 'min:50', 'max:180'],
             'last_diastolic' => ['nullable', 'integer', 'min:30', 'max:120'],
             'history_type' => ['required', 'in:none,hypertension,prior_preeclampsia,family'],
-            'risk_level' => ['required', 'in:low,medium,high'],
+            'risk_level' => ['required', 'in:unknown,low,medium,high'],
             'phone' => ['nullable', 'string', 'max:20'],
         ]);
 

@@ -3,23 +3,35 @@ import 'package:rotasi_mobile/features/registration/patient.dart';
 
 void main() {
   group('computeRiskLevel', () {
-    test('tanpa riwayat dan usia muda -> low', () {
+    test('belum ada tensi -> unknown', () {
       expect(
         Patient.computeRiskLevel(age: 25, historyType: HistoryType.none),
+        RiskLevel.unknown,
+      );
+      expect(
+        Patient.computeRiskLevel(
+            age: 40, historyType: HistoryType.priorPreeclampsia, bmi: 36),
+        RiskLevel.unknown,
+      );
+    });
+
+    test('tanpa riwayat dan usia muda -> low (setelah tensi)', () {
+      expect(
+        Patient.computeRiskLevel(age: 25, historyType: HistoryType.none, hasMeasurement: true),
         RiskLevel.low,
       );
     });
 
     test('hipertensi -> medium', () {
       expect(
-        Patient.computeRiskLevel(age: 25, historyType: HistoryType.hypertension),
+        Patient.computeRiskLevel(age: 25, historyType: HistoryType.hypertension, hasMeasurement: true),
         RiskLevel.medium,
       );
     });
 
     test('riwayat turunan -> medium', () {
       expect(
-        Patient.computeRiskLevel(age: 25, historyType: HistoryType.family),
+        Patient.computeRiskLevel(age: 25, historyType: HistoryType.family, hasMeasurement: true),
         RiskLevel.medium,
       );
     });
@@ -29,6 +41,7 @@ void main() {
         Patient.computeRiskLevel(
           age: 25,
           historyType: HistoryType.priorPreeclampsia,
+          hasMeasurement: true,
         ),
         RiskLevel.high,
       );
@@ -36,14 +49,14 @@ void main() {
 
     test('usia di atas 35 -> medium', () {
       expect(
-        Patient.computeRiskLevel(age: 37, historyType: HistoryType.none),
+        Patient.computeRiskLevel(age: 37, historyType: HistoryType.none, hasMeasurement: true),
         RiskLevel.medium,
       );
     });
 
     test('usia 40+ -> high', () {
       expect(
-        Patient.computeRiskLevel(age: 40, historyType: HistoryType.none),
+        Patient.computeRiskLevel(age: 40, historyType: HistoryType.none, hasMeasurement: true),
         RiskLevel.high,
       );
     });
@@ -54,6 +67,7 @@ void main() {
           age: 25,
           historyType: HistoryType.none,
           bmi: 32,
+          hasMeasurement: true,
         ),
         RiskLevel.medium,
       );
@@ -65,6 +79,7 @@ void main() {
           age: 25,
           historyType: HistoryType.none,
           bmi: 36,
+          hasMeasurement: true,
         ),
         RiskLevel.high,
       );
@@ -76,6 +91,7 @@ void main() {
           age: 25,
           historyType: HistoryType.none,
           bmi: 30,
+          hasMeasurement: true,
         ),
         RiskLevel.low,
       );
@@ -83,24 +99,39 @@ void main() {
   });
 
   group('riskFactors & recommendation (FR-02)', () {
-    test('tidak ada faktor -> kosong + rekomendasi rendah', () {
+    test('belum ada tensi -> unknown + rekomendasi ukur tensi', () {
       final p = Patient.newLocal(
         name: 'Sitti',
         age: 25,
         heightCm: 160,
         weightKg: 55,
       );
+      expect(p.riskLevel, RiskLevel.unknown);
+      expect(p.recommendation, contains('Belum ada pengukuran'));
+    });
+
+    test('tidak ada faktor setelah tensi -> rendah', () {
+      final p = Patient.newLocal(
+        name: 'Sitti',
+        age: 25,
+        heightCm: 160,
+        weightKg: 55,
+        lastSystolic: 118,
+        lastDiastolic: 76,
+      );
       expect(p.riskLevel, RiskLevel.low);
       expect(p.riskFactors(), isEmpty);
       expect(p.recommendation, contains('Risiko rendah'));
     });
 
-    test('usia 38 + IMT 33 -> faktor terdeteksi + risiko sedang', () {
+    test('usia 38 + IMT 33 -> faktor terdeteksi + risiko sedang (perlu tensi)', () {
       final p = Patient.newLocal(
         name: 'Nur',
         age: 38,
         heightCm: 155,
         weightKg: 80,
+        lastSystolic: 120,
+        lastDiastolic: 80,
       );
       // IMT 155cm/80kg = 33.3
       expect(p.riskLevel, RiskLevel.medium);
@@ -109,13 +140,15 @@ void main() {
       expect(p.recommendation, contains('Risiko sedang'));
     });
 
-    test('riwayat preeklamsia -> faktor + rekomendasi tinggi', () {
+    test('riwayat preeklamsia -> faktor + rekomendasi tinggi (perlu tensi)', () {
       final p = Patient.newLocal(
         name: 'Ayu',
         age: 24,
         heightCm: 160,
         weightKg: 55,
         historyType: HistoryType.priorPreeclampsia,
+        lastSystolic: 120,
+        lastDiastolic: 80,
       );
       expect(p.riskLevel, RiskLevel.high);
       expect(p.riskFactors(), ['Pernah preeklamsia']);
@@ -170,10 +203,23 @@ void main() {
         heightCm: 160,
         weightKg: 55,
         historyType: HistoryType.hypertension,
+        lastSystolic: 120,
+        lastDiastolic: 80,
       );
 
       expect(patient.uuid, isNotEmpty);
       expect(patient.riskLevel, RiskLevel.medium);
+    });
+
+    test('tanpa tensi -> unknown, bukan low', () {
+      final patient = Patient.newLocal(
+        name: 'Ani',
+        age: 24,
+        heightCm: 160,
+        weightKg: 55,
+      );
+      expect(patient.riskLevel, RiskLevel.unknown);
+      expect(patient.toSyncPayload()['risk_level'], 'unknown');
     });
 
     test('fromMap roundtrip mempertahankan nilai', () {
