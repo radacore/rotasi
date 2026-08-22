@@ -46,9 +46,8 @@ const ancGuideSections = <AncGuideSection>[
       AncGuideItem(
         code: 'T2',
         title: 'Ukur Tekanan Darah (10T No.2)',
-        description: 'Wajib pada 6 kunjungan ANC (K1-K6, Buku KIA 2025 hal 96). '
-            'Pantau mandiri Pagi & Sore di antara kunjungan untuk deteksi dini '
-            'hipertensi gestasional / preeklamsia (≥140/90 mmHg).',
+        description: 'Wajib pada tiap kunjungan ANC K1-K6 (6x, Buku KIA 2025 '
+            'hal 96, ≥140/90 mmHg segera rujuk).',
       ),
       AncGuideItem(
         code: 'T3',

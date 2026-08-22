@@ -145,8 +145,8 @@ class _MeasurementPageState extends State<MeasurementPage> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Tensi diukur wajib pada 6 kunjungan ANC (K1-K6: 1× TM1, 2× TM2, 3× TM3). '
-                          'ROTASI: pantau mandiri Pagi & Sore di antara kunjungan untuk deteksi dini ≥140/90.',
+                          'Tensi diukur wajib pada tiap kunjungan ANC K1-K6 (6x). '
+                          'Hasil ≥140/90 mmHg segera rujuk ke faskes (Buku KIA 2025).',
                           style: TextStyle(fontSize: 12, height: 1.35),
                         ),
                       ],

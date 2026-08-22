@@ -32,7 +32,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
       case BpStatus.stage1:
         return 'Periksa ulang rutin dan sampaikan hasil ke bidan pada ANC berikutnya.';
       case BpStatus.elevated:
-        return 'Terus pantau Pagi & Sore. Kurangi garam, kelola stres.';
+        return 'Kurangi garam, kelola stres, dan pantau rutin.';
       case BpStatus.normal:
         return 'Tekanan darah normal. Pertahankan pola hidup sehat & ANC 6x.';
     }

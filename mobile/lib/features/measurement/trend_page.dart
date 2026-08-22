@@ -201,8 +201,8 @@ class _TrendPageState extends State<TrendPage> {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Buku KIA 2025: tensi wajib 6x ANC (K1-K6). Grafik harian '
-                  'Pagi & Sore membantu bidan melihat tren di antara kunjungan (≥140/90 rujuk).',
+                  'Buku KIA 2025: tensi wajib tiap ANC K1-K6 (6x). '
+                  'Catatan tensi untuk ditunjukkan ke bidan (≥140/90 rujuk).',
                   style: TextStyle(fontSize: 12, height: 1.35),
                 ),
               ),

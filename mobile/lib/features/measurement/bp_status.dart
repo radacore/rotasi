@@ -40,8 +40,7 @@ enum BpStatus {
 
 /// Sesi pengukuran pagi/sore (FR-03).
 ///
-/// Sesuai Buku KIA 2025: tensi wajib pada 6 kunjungan ANC (10T No.2);
-/// ROTASI pantau mandiri Pagi & Sore di antara kunjungan (banner di MeasurementPage).
+/// Sesuai Buku KIA 2025: tensi wajib pada tiap kunjungan ANC K1-K6 (6x, 10T No.2).
 enum SessionCode {
   pagi('pagi', 'Pagi'),
   sore('sore', 'Sore');
