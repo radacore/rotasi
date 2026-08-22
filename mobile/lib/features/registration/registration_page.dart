@@ -115,8 +115,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Icon(Icons.favorite, color: AppColors.primary, size: 56),
-              const SizedBox(height: 12),
               Text(
                 'Selamat Datang',
                 textAlign: TextAlign.center,
@@ -127,7 +125,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Lengkapi biodata ibu untuk mulai memantau tekanan darah.',
+                'Lengkapi biodata ibu untuk mulai menggunakan Aplikasi Rotasi',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondary,
