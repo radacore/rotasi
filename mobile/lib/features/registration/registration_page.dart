@@ -107,10 +107,32 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   InputDecoration _dec(String label, IconData icon) => InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 18),
+        labelStyle: const TextStyle(fontSize: 13),
+        floatingLabelStyle: const TextStyle(fontSize: 13, color: AppColors.primary),
+        prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.crisis),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.crisis, width: 1.5),
+        ),
       );
 
   @override
@@ -121,7 +143,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
             children: [
               Text(
                 'Selamat Datang',
@@ -129,25 +151,31 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w800,
-                      fontSize: 20,
+                      fontSize: 24,
                       height: 1.1,
+                      letterSpacing: -0.3,
                     ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 6),
               Text(
-                'Lengkapi biodata ibu untuk mulai menggunakan Aplikasi Rotasi',
+                'Lengkapi biodata ibu untuk mulai menggunakan\nAplikasi Rotasi',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
-                      fontSize: 12,
-                      height: 1.3,
+                      fontSize: 13,
+                      height: 1.45,
                     ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Card(
                 margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: AppColors.border, width: 0.9),
+                ),
+                elevation: 0,
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -155,82 +183,58 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         controller: _nameController,
                         textCapitalization: TextCapitalization.words,
                         style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Nama ibu', Icons.person),
+                        decoration: _dec('Nama ibu', Icons.person_outline),
                         validator: (v) =>
                             (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _ageController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _dec('Usia (thn)', Icons.cake),
-                              validator: (v) {
-                                final n = int.tryParse(v ?? '');
-                                if (n == null || n < 12 || n > 55) {
-                                  return '12–55';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _gestationalWeeksController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _dec('Hamil (mgg)', Icons.pregnant_woman),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return null;
-                                final n = int.tryParse(v);
-                                if (n == null || n < 0 || n > 45) {
-                                  return '0–45';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _ageController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: _dec('Usia (tahun)', Icons.cake_outlined),
+                        validator: (v) {
+                          final n = int.tryParse(v ?? '');
+                          if (n == null || n < 12 || n > 55) return 'Usia 12–55 tahun';
+                          return null;
+                        },
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _heightController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _dec('Tinggi (cm)', Icons.height),
-                              validator: (v) {
-                                final n = double.tryParse(v ?? '');
-                                if (n == null || n < 100 || n > 250) {
-                                  return '100–250';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _weightController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _dec('Berat (kg)', Icons.monitor_weight),
-                              validator: (v) {
-                                final n = double.tryParse(v ?? '');
-                                if (n == null || n < 30 || n > 200) {
-                                  return '30–200';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _gestationalWeeksController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: _dec('Usia kehamilan (minggu)', Icons.pregnant_woman_outlined),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          final n = int.tryParse(v);
+                          if (n == null || n < 0 || n > 45) return '0–45 minggu';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _heightController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: _dec('Tinggi badan (cm)', Icons.height_outlined),
+                        validator: (v) {
+                          final n = double.tryParse(v ?? '');
+                          if (n == null || n < 100 || n > 250) return '100–250 cm';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _weightController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: _dec('Berat badan (kg)', Icons.monitor_weight_outlined),
+                        validator: (v) {
+                          final n = double.tryParse(v ?? '');
+                          if (n == null || n < 30 || n > 200) return '30–200 kg';
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -242,42 +246,30 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                       ),
                       const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _systolicController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _dec('Sistolik', Icons.favorite_outline),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return null;
-                                final n = int.tryParse(v);
-                                if (n == null || n < 50 || n > 180) {
-                                  return '50–180';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _diastolicController,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _dec('Diastolik', Icons.favorite_outline),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) return null;
-                                final n = int.tryParse(v);
-                                if (n == null || n < 30 || n > 120) {
-                                  return '30–120';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        controller: _systolicController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: _dec('Sistolik (atas)', Icons.favorite_border),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          final n = int.tryParse(v);
+                          if (n == null || n < 50 || n > 180) return '50–180';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _diastolicController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: _dec('Diastolik (bawah)', Icons.favorite_border),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          final n = int.tryParse(v);
+                          if (n == null || n < 30 || n > 120) return '30–120';
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -297,49 +289,51 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           return ChoiceChip(
                             label: Text(type.label, style: const TextStyle(fontSize: 12)),
                             selected: selected,
-                            selectedColor: AppColors.primaryLight,
+                            selectedColor: AppColors.primary,
+                            backgroundColor: Colors.white,
+                            side: BorderSide(
+                              color: selected ? AppColors.primary : AppColors.border,
+                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             visualDensity: VisualDensity.compact,
                             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                             labelStyle: TextStyle(
                               color: selected ? AppColors.white : AppColors.textPrimary,
                               fontSize: 12,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                             ),
-                            onSelected: (_) =>
-                                setState(() => _historyType = type),
+                            onSelected: (_) => setState(() => _historyType = type),
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Nomor WhatsApp (opsional)', Icons.phone),
+                        decoration: _dec('Nomor WhatsApp (opsional)', Icons.phone_outlined),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               SizedBox(
                 height: 44,
                 child: ElevatedButton(
                   onPressed: _submitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(44),
-                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: _submitting
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                         )
                       : const Text('Simpan dan Mulai'),
                 ),
