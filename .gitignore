@@ -2,3 +2,6 @@
 .playwright-mcp/
 meridian/
 meridian.zip
+booklet.zip
+booklet/
+*-qr.png

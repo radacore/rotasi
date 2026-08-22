@@ -487,6 +487,9 @@ void main() {
 
   group('AncCheckPage (FR-08)', () {
     Future<void> pumpAnc(WidgetTester tester, AncRepository repo) async {
+      tester.view.physicalSize = const Size(900, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           home: AncCheckPage(
@@ -504,11 +507,12 @@ void main() {
 
       expect(find.text('0 dari 10 pemeriksaan ditandai'), findsOneWidget);
 
-      await tester.tap(find.textContaining('T1'));
+      await tester.tap(find.text('T1 · Ukur Berat Badan'));
       await tester.pump();
-      await tester.tap(find.textContaining('T3'));
+      await tester.tap(find.text('T3 · Ukur Tinggi Fundus'));
       await tester.pump();
-      await tester.tap(find.textContaining('T5'));
+      await tester.ensureVisible(find.text('T5 · Hitung DJJ'));
+      await tester.tap(find.text('T5 · Hitung DJJ'));
       await tester.pump();
 
       expect(find.text('3 dari 10 pemeriksaan ditandai'), findsOneWidget);
@@ -722,13 +726,15 @@ void main() {
       expect(calls, ['tel:119']);
     });
 
-    testWidgets('tanpa pengaturan -> ajakan periksa pembaruan',
+    testWidgets('tanpa pengaturan -> fallback offline tetap tampil',
         (tester) async {
       final repo = FakeSettingRepository(settings: null);
       await pumpReferral(tester, repo, (url) async {});
 
-      expect(find.text('Belum ada panduan rujukan'), findsOneWidget);
-      expect(find.text('Periksa Pembaruan'), findsOneWidget);
+      // Fallback offline-first: tetap tampil data default, bukan empty.
+      expect(find.text('Belum ada panduan rujukan'), findsNothing);
+      expect(find.text('119'), findsOneWidget);
+      expect(find.text('Puskesmas Barombong'), findsOneWidget);
     });
   });
 
@@ -776,12 +782,14 @@ void main() {
       expect(uri.queryParameters['text'], contains('Siti'));
     });
 
-    testWidgets('tanpa daftar -> ajakan muat ulang', (tester) async {
+    testWidgets('tanpa daftar -> fallback bidan default tetap tampil',
+        (tester) async {
       final repo = FakeMidwifeRepository(midwives: const []);
       await pumpMidwife(tester, repo);
 
-      expect(find.text('Belum ada daftar bidan'), findsOneWidget);
-      expect(find.text('Muat Ulang'), findsOneWidget);
+      // Fallback offline-first: MidwifePage pakai default Lusi bila kosong.
+      expect(find.text('Belum ada daftar bidan'), findsNothing);
+      expect(find.text('Lusi'), findsOneWidget);
     });
   });
 

@@ -45,9 +45,10 @@ const ancGuideSections = <AncGuideSection>[
       ),
       AncGuideItem(
         code: 'T2',
-        title: 'Ukur Tekanan Darah',
-        description: 'Sangat krusial untuk mendeteksi dini hipertensi '
-            'gestasional dan risiko preeklamsia (standar <140/90 mmHg).',
+        title: 'Ukur Tekanan Darah (10T No.2)',
+        description: 'Wajib pada 6 kunjungan ANC (K1-K6, Buku KIA 2025 hal 96). '
+            'Pantau mandiri Pagi & Sore di antara kunjungan untuk deteksi dini '
+            'hipertensi gestasional / preeklamsia (≥140/90 mmHg).',
       ),
       AncGuideItem(
         code: 'T3',

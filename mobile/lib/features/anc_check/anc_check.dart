@@ -6,7 +6,7 @@ import 'package:uuid/uuid.dart';
 /// Standar pemeriksaan Antenatal Care 10T (FR-08).
 enum AncItem {
   t1('t1', 'Ukur Berat Badan', 'Pantau kenaikan berat badan ibu', Icons.monitor_weight_outlined),
-  t2('t2', 'Ukur Tekanan Darah', 'Deteksi dini preeklamsia', Icons.favorite_outline),
+  t2('t2', 'Ukur Tekanan Darah', '10T No.2 Buku KIA 2025 — wajib tiap ANC K1-K6, deteksi hipertensi ≥140/90', Icons.favorite_outline),
   t3('t3', 'Ukur Tinggi Fundus', 'Periksa pertumbuhan janin', Icons.straighten),
   t4('t4', 'Periksa Letak Janin', 'Pemeriksaan Leopold', Icons.accessibility_new),
   t5('t5', 'Hitung DJJ', 'Denyut jantung janin', Icons.monitor_heart_outlined),

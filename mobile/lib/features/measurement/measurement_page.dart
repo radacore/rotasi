@@ -123,6 +123,40 @@ class _MeasurementPageState extends State<MeasurementPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            margin: EdgeInsets.zero,
+            color: AppColors.skyLight,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Icon(Icons.menu_book_outlined,
+                      color: AppColors.primaryLight, size: 22),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '10T No.2 Buku KIA 2025 — Wajib tiap ANC (6x)',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Tensi diukur wajib pada 6 kunjungan ANC (K1-K6: 1× TM1, 2× TM2, 3× TM3). '
+                          'ROTASI: pantau mandiri Pagi & Sore di antara kunjungan untuk deteksi dini ≥140/90.',
+                          style: TextStyle(fontSize: 12, height: 1.35),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           SegmentedButton<SessionCode>(
             segments: SessionCode.values
                 .map((s) => ButtonSegment(
@@ -135,6 +169,14 @@ class _MeasurementPageState extends State<MeasurementPage> {
                 .toList(),
             selected: {_session},
             onSelectionChanged: (sel) => setState(() => _session = sel.first),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Pilih sesi sesuai waktu ukur. Di luar jam tetap tercatat.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
           _ReadingCard(

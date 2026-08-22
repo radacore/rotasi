@@ -128,14 +128,26 @@ class _AncCheckPageState extends State<AncCheckPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Icon(Icons.info_outline,
+                        Icon(Icons.menu_book_outlined,
                             color: AppColors.primaryLight),
                         SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            'Tandai pemeriksaan yang sudah dilakukan '
-                            'saat kontrol ke faskes. Bisa untuk riwayat '
-                            'kunjungan sebelumnya.',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Buku KIA 2025 — Wajib 6x ANC (hal 96)',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 13),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'K1: <12 minggu, K2: 20, K3: 26, K4: 30, K5: 34, K6: 36 minggu–lahir. '
+                                'Setiap kunjungan wajib 10T termasuk T2 Ukur Tekanan Darah. '
+                                'Centang sesuai yang sudah dilakukan di faskes.',
+                                style: TextStyle(fontSize: 12, height: 1.35),
+                              ),
+                            ],
                           ),
                         ),
                       ],
