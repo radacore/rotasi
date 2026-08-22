@@ -110,6 +110,7 @@ Future<void> _pumpApp(
     repository: repo,
     bpRepository: bpRepo,
     syncService: syncService,
+    splashMinDuration: Duration.zero,
   ));
   await tester.pumpAndSettle();
 }

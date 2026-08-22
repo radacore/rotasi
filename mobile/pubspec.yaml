@@ -34,6 +34,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/logo.png
     - assets/images/whatsapp.png
     - assets/data/
     - assets/booklets/
