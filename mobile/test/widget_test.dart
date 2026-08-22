@@ -281,10 +281,6 @@ void main() {
       final bpRepo = FakeBpRepository();
       await pumpMeasurement(tester, bpRepo);
 
-      // Pastikan sesi deterministik (sore).
-      await tester.tap(find.text('Sesi Sore'));
-      await tester.pumpAndSettle();
-
       // Pengukuran 1.
       await tester.enterText(find.byType(TextField).at(0), '120');
       await tester.enterText(find.byType(TextField).at(1), '80');
@@ -310,7 +306,7 @@ void main() {
 
       expect(find.byType(RotasiWheel), findsOneWidget);
       expect(find.text('Rata-rata 122/79'), findsOneWidget);
-      expect(find.text('Sesi Sore · Waspada'), findsOneWidget);
+      expect(find.text('Waspada'), findsOneWidget);
 
       await tester.tap(find.text('Simpan Hasil'));
       await tester.pumpAndSettle();
@@ -318,7 +314,7 @@ void main() {
       expect(bpRepo.saveCount, 1);
       expect(bpRepo.syncCount, 1);
       expect(bpRepo.stored, isNotNull);
-      expect(bpRepo.stored!.sessionCode.value, 'sore');
+      expect(bpRepo.stored!.sessionCode.value, 'pagi');
       expect(bpRepo.stored!.status.label, 'Waspada');
     });
   });
@@ -339,7 +335,7 @@ void main() {
       expect(find.text('Belum ada data pengukuran.'), findsOneWidget);
     });
 
-    testWidgets('dengan data -> grafik sistolik & diastolik + legenda sesi',
+    testWidgets('dengan data -> grafik sistolik & diastolik + legenda',
         (tester) async {
       final bpRepo = FakeBpRepository()
         ..storedHistory = [
@@ -366,8 +362,7 @@ void main() {
 
       expect(find.text('Sistolik (atas)'), findsOneWidget);
       expect(find.text('Diastolik (bawah)'), findsOneWidget);
-      expect(find.text('Pagi'), findsNWidgets(2));
-      expect(find.text('Sore'), findsNWidgets(2));
+      expect(find.text('Catatan'), findsNWidgets(2));
     });
   });
 
@@ -978,7 +973,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Belum ada pengukuran'), findsNothing);
-      expect(find.text('Terakhir: 122/79 · Pagi'), findsOneWidget);
+      expect(find.text('Terakhir: 122/79'), findsOneWidget);
     });
   });
 

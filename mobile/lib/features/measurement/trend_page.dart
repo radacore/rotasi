@@ -6,7 +6,7 @@ import 'bp_repository.dart';
 import 'bp_status.dart';
 import 'bp_trend_chart.dart';
 
-/// Grafik tren tekanan darah harian pagi & sore (FR-05).
+/// Grafik tren tekanan darah (FR-05).
 ///
 /// Menampilkan ringkasan nilai terakhir, filter rentang, grafik sistolik &
 /// diastolik, distribusi status, dan interpretasi otomatis.
@@ -23,39 +23,26 @@ class _DayRow {
   const _DayRow({
     required this.key,
     required this.label,
-    this.sysPagi,
-    this.diaPagi,
-    this.sysSore,
-    this.diaSore,
+    this.sys,
+    this.dia,
   });
 
   final String key;
   final String label;
-  final double? sysPagi;
-  final double? diaPagi;
-  final double? sysSore;
-  final double? diaSore;
+  final double? sys;
+  final double? dia;
 
-  bool get hasMeasurement =>
-      sysPagi != null || diaPagi != null || sysSore != null || diaSore != null;
+  bool get hasMeasurement => sys != null || dia != null;
 
-  double? get avgSys {
-    final values = [sysPagi, sysSore].whereType<double>().toList();
-    if (values.isEmpty) return null;
-    return values.reduce((a, b) => a + b) / values.length;
-  }
+  double? get avgSys => sys;
 
-  double? get avgDia {
-    final values = [diaPagi, diaSore].whereType<double>().toList();
-    if (values.isEmpty) return null;
-    return values.reduce((a, b) => a + b) / values.length;
-  }
+  double? get avgDia => dia;
 
   BpStatus? get status {
-    final sys = avgSys;
-    final dia = avgDia;
-    if (sys == null || dia == null) return null;
-    return BpStatus.classify(sys.round(), dia.round());
+    final s = sys;
+    final d = dia;
+    if (s == null || d == null) return null;
+    return BpStatus.classify(s.round(), d.round());
   }
 }
 
@@ -99,32 +86,12 @@ class _TrendPageState extends State<TrendPage> {
     final byDay = <String, _DayRow>{};
     for (final m in _data) {
       final key = _dayKey(m.measuredAt);
-      final row = byDay.putIfAbsent(
-        key,
-        () => _DayRow(
-          key: key,
-          label: '${key.split('-')[2]}/${key.split('-')[1]}',
-        ),
+      byDay[key] = _DayRow(
+        key: key,
+        label: '${key.split('-')[2]}/${key.split('-')[1]}',
+        sys: m.avgSystolic.toDouble(),
+        dia: m.avgDiastolic.toDouble(),
       );
-      if (m.sessionCode == SessionCode.pagi) {
-        byDay[key] = _DayRow(
-          key: row.key,
-          label: row.label,
-          sysPagi: m.avgSystolic.toDouble(),
-          diaPagi: m.avgDiastolic.toDouble(),
-          sysSore: row.sysSore,
-          diaSore: row.diaSore,
-        );
-      } else {
-        byDay[key] = _DayRow(
-          key: row.key,
-          label: row.label,
-          sysPagi: row.sysPagi,
-          diaPagi: row.diaPagi,
-          sysSore: m.avgSystolic.toDouble(),
-          diaSore: m.avgDiastolic.toDouble(),
-        );
-      }
     }
     final days = byDay.values.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
@@ -244,19 +211,12 @@ class _TrendPageState extends State<TrendPage> {
   List<Widget> _buildCharts(List<_DayRow> days) {
     final xLabels = days.map((d) => d.label).toList();
     final n = days.length;
-    final sysPagi = List<double?>.filled(n, null);
-    final diaPagi = List<double?>.filled(n, null);
-    final sysSore = List<double?>.filled(n, null);
-    final diaSore = List<double?>.filled(n, null);
+    final sys = List<double?>.filled(n, null);
+    final dia = List<double?>.filled(n, null);
     for (var i = 0; i < n; i++) {
-      sysPagi[i] = days[i].sysPagi;
-      diaPagi[i] = days[i].diaPagi;
-      sysSore[i] = days[i].sysSore;
-      diaSore[i] = days[i].diaSore;
+      sys[i] = days[i].sys;
+      dia[i] = days[i].dia;
     }
-
-    const pagiColor = AppColors.primaryLight;
-    const soreColor = AppColors.sun;
 
     return [
       BpTrendChart(
@@ -268,8 +228,7 @@ class _TrendPageState extends State<TrendPage> {
           ChartBand(min: 140, max: 999, color: AppColors.crisis),
         ],
         series: [
-          TrendSeries(name: 'Pagi', color: pagiColor, values: sysPagi),
-          TrendSeries(name: 'Sore', color: soreColor, values: sysSore),
+          TrendSeries(name: 'Catatan', color: AppColors.primaryLight, values: sys),
         ],
         xLabels: xLabels,
       ),
@@ -282,8 +241,7 @@ class _TrendPageState extends State<TrendPage> {
           ChartBand(min: 90, max: 999, color: AppColors.crisis),
         ],
         series: [
-          TrendSeries(name: 'Pagi', color: pagiColor, values: diaPagi),
-          TrendSeries(name: 'Sore', color: soreColor, values: diaSore),
+          TrendSeries(name: 'Catatan', color: AppColors.primaryLight, values: dia),
         ],
         xLabels: xLabels,
       ),

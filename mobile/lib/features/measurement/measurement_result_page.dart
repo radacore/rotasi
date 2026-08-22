@@ -82,12 +82,12 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Sesi ${m.sessionCode.label} · ${m.status.label}',
+            m.status.label,
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: m.status.color,
+                ),
           ),
           const SizedBox(height: 16),
           StatusExplanation(active: m.status),

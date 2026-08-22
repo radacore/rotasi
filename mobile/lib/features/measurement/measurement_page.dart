@@ -31,7 +31,7 @@ class _MeasurementPageState extends State<MeasurementPage> {
   final _s2Controller = TextEditingController();
   final _d2Controller = TextEditingController();
 
-  SessionCode _session = SessionCode.fromHour(DateTime.now());
+  final _session = SessionCode.pagi;
   bool _r1Saved = false;
   bool _countdownActive = false;
   bool _r2Unlocked = false;
@@ -155,28 +155,6 @@ class _MeasurementPageState extends State<MeasurementPage> {
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<SessionCode>(
-            segments: SessionCode.values
-                .map((s) => ButtonSegment(
-                      value: s,
-                      label: Text('Sesi ${s.label}'),
-                      icon: Icon(s == SessionCode.pagi
-                          ? Icons.wb_sunny
-                          : Icons.nightlight),
-                    ))
-                .toList(),
-            selected: {_session},
-            onSelectionChanged: (sel) => setState(() => _session = sel.first),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Pilih sesi sesuai waktu ukur. Di luar jam tetap tercatat.',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
           _ReadingCard(

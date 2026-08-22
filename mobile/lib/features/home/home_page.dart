@@ -217,7 +217,7 @@ class _StatusCard extends StatelessWidget {
                   RotasiWheel(status: m.status, size: 250),
                   const SizedBox(height: 12),
                   Text(
-                    'Terakhir: ${m.avgSystolic}/${m.avgDiastolic} · ${m.sessionCode.label}',
+                    'Terakhir: ${m.avgSystolic}/${m.avgDiastolic}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary,
