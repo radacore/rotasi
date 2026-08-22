@@ -34,8 +34,12 @@ class MidwifePage extends StatefulWidget {
 
 class _MidwifePageState extends State<MidwifePage> {
   late final MidwifeRepository _repository;
-  List<Midwife> _midwives = const [];
-  bool _loading = true;
+  List<Midwife> _midwives = const [
+    Midwife(id: 9, name: 'Lusi', role: 'Bidan', phone: '081227088313'),
+  ];
+  bool _loading = false;
+  String _source = 'fallback';
+  String? _error;
 
   @override
   void initState() {
@@ -45,17 +49,50 @@ class _MidwifePageState extends State<MidwifePage> {
   }
 
   Future<void> _load() async {
-    if (_midwives.isEmpty) setState(() => _loading = true);
-    final seeded = await _repository.ensureSeeded();
-    final local = seeded ?? await _repository.getLocal();
+    List<Midwife>? seeded;
+    List<Midwife> local = const [];
+    List<Midwife> remote = const [];
+    String? err;
+    try {
+      seeded = await _repository
+          .ensureSeeded()
+          .timeout(const Duration(seconds: 3));
+      local = seeded ??
+          await _repository.getLocal().timeout(const Duration(seconds: 2));
+      debugPrint(
+          '[MidwifePage] seeded=${seeded?.length} local=${local.length}');
+    } catch (e) {
+      err = e.toString();
+      debugPrint('[MidwifePage] seed/local error: $err');
+    }
     if (!mounted) return;
-    setState(() {
-      if (local.isNotEmpty) _midwives = local;
-      _loading = false;
-    });
-    final remote = await _repository.fetchRemote();
+    if (local.isNotEmpty) {
+      setState(() {
+        _midwives = local;
+        _source = seeded != null ? 'seed(${seeded.length})' : 'lokal(${local.length})';
+        _error = err;
+      });
+    } else if (err != null) {
+      setState(() => _error = err);
+    }
+    try {
+      remote = await _repository
+          .fetchRemote()
+          .timeout(const Duration(seconds: 12));
+      debugPrint('[MidwifePage] remote=${remote.length}');
+    } catch (e) {
+      debugPrint('[MidwifePage] remote error: $e');
+      if (!mounted) return;
+      setState(() => _error = '${_error == null ? '' : '$_error; '}remote:$e');
+      return;
+    }
     if (!mounted) return;
-    if (remote.isNotEmpty) setState(() => _midwives = remote);
+    if (remote.isNotEmpty) {
+      setState(() {
+        _midwives = remote;
+        _source = 'server(${remote.length})';
+      });
+    }
   }
 
   Future<String> _buildSummary() async {
@@ -105,6 +142,25 @@ class _MidwifePageState extends State<MidwifePage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (_error != null)
+                    Card(
+                      color: Colors.amber.shade100,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text('Diagnosa: $_error\nsumber:$_source',
+                            style: const TextStyle(fontSize: 12)),
+                      ),
+                    )
+                  else if (_source.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text('Sumber: $_source',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.textSecondary)),
+                    ),
                   Card(
                     margin: EdgeInsets.zero,
                     color: AppColors.skyLight,

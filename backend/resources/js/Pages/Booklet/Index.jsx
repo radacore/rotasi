@@ -241,10 +241,7 @@ export default function BookletIndex({ releases, errors }) {
                                         {releases.data.map((r) => (
                                             <tr key={r.id}>
                                                 <td>
-                                                    <div className="font-medium">
-                                                        {r.title}
-                                                        <span className="text-muted-foreground"> (v{r.version})</span>
-                                                    </div>
+                                                    <div className="font-medium">{r.title}</div>
                                                     <a
                                                         href={r.file_url}
                                                         target="_blank"

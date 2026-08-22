@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\WebApkController;
 use App\Http\Controllers\Admin\WebAuthController;
 use App\Http\Controllers\Admin\WebBookletController;
 use App\Http\Controllers\Admin\WebDashboardController;
-use App\Http\Controllers\Admin\WebMediaController;
 use App\Http\Controllers\Admin\WebMidwifeController;
 use App\Http\Controllers\Admin\WebPatientController;
 use App\Http\Controllers\Admin\WebUploadController;
@@ -31,12 +30,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/patients', [WebPatientController::class, 'index'])->name('patients.index');
     Route::get('/patients/{patientUuid}', [WebPatientController::class, 'show'])->name('patients.show');
+    Route::delete('/patients/{patientUuid}', [WebPatientController::class, 'destroy'])->name('patients.destroy');
 
     Route::get('/sync-logs', [WebSyncLogController::class, 'index'])->name('sync-logs.index');
-
-    Route::get('/media', [WebMediaController::class, 'index'])->name('media.index');
-    Route::post('/media', [WebMediaController::class, 'store'])->name('media.store');
-    Route::delete('/media/{media}', [WebMediaController::class, 'destroy'])->name('media.destroy');
 
     Route::get('/account', [WebAccountController::class, 'edit'])->name('account.edit');
     Route::put('/account', [WebAccountController::class, 'update'])->name('account.update');

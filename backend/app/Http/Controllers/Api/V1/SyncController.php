@@ -200,6 +200,13 @@ class SyncController extends Controller
         }
 
         $this->upsertBp($data);
+        SyncLog::create([
+            'device_uuid' => $device->device_uuid,
+            'patient_uuid' => $data['patient_uuid'],
+            'status' => 'success',
+            'records_count' => 1,
+            'synced_at' => now(),
+        ]);
 
         return $this->ok(['uuid' => $data['uuid']], 'Record tekanan darah disimpan', 201);
     }
@@ -226,6 +233,13 @@ class SyncController extends Controller
         }
 
         $this->upsertSymptom($data);
+        SyncLog::create([
+            'device_uuid' => $device->device_uuid,
+            'patient_uuid' => $data['patient_uuid'],
+            'status' => 'success',
+            'records_count' => 1,
+            'synced_at' => now(),
+        ]);
 
         return $this->ok(['uuid' => $data['uuid']], 'Ceklis gejala disimpan', 201);
     }
@@ -251,6 +265,13 @@ class SyncController extends Controller
         }
 
         $this->upsertKick($data);
+        SyncLog::create([
+            'device_uuid' => $device->device_uuid,
+            'patient_uuid' => $data['patient_uuid'],
+            'status' => 'success',
+            'records_count' => 1,
+            'synced_at' => now(),
+        ]);
 
         return $this->ok(['uuid' => $data['uuid']], 'Hitungan gerakan janin disimpan', 201);
     }
@@ -274,6 +295,13 @@ class SyncController extends Controller
         }
 
         $this->upsertAnc($data);
+        SyncLog::create([
+            'device_uuid' => $device->device_uuid,
+            'patient_uuid' => $data['patient_uuid'],
+            'status' => 'success',
+            'records_count' => 1,
+            'synced_at' => now(),
+        ]);
 
         return $this->ok(['uuid' => $data['uuid']], 'Ceklis 10T disimpan', 201);
     }

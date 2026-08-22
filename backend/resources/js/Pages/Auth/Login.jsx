@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import useTheme from '../../hooks/useTheme';
-import { EyeIcon, LogoIcon, MailIcon, MoonIcon, SunIcon } from '../../components/icons';
+import { EyeIcon, MailIcon, MoonIcon, SunIcon } from '../../components/icons';
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -17,7 +17,7 @@ export default function Login() {
     };
 
     return (
-        <main className="auth">
+        <main className="auth auth--centered">
             <section className="auth__panel">
                 <button
                     type="button"
@@ -30,11 +30,27 @@ export default function Login() {
                 </button>
 
                 <div className="auth__form">
-                    <div>
-                        <h1 className="text-2xl">Selamat datang kembali</h1>
-                        <p className="text-muted-foreground mt-1">
-                            Masuk ke dashboard admin ROTASI.
-                        </p>
+                    <div className="flex flex-col items-center text-center gap-2">
+                        <img
+                            src="/logo-180.png"
+                            srcSet="/logo-180.png 1x, /logo-256.png 2x"
+                            alt="ROTASI"
+                            className="h-20 w-auto object-contain"
+                            width="180"
+                            height="180"
+                            loading="eager"
+                            decoding="async"
+                        />
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-[15px] font-bold tracking-[0.18em]">ROTASI</p>
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground">Roda Pantau Tensi</p>
+                        </div>
+                        <div className="pt-1">
+                            <h1 className="text-2xl">Selamat datang kembali</h1>
+                            <p className="text-muted-foreground mt-1">
+                                Masuk ke dashboard admin ROTASI.
+                            </p>
+                        </div>
                     </div>
 
                     <form onSubmit={submit} className="flex flex-col gap-4">
@@ -107,26 +123,6 @@ export default function Login() {
                     </form>
                 </div>
             </section>
-
-            <aside className="auth__aside">
-                <a href="/dashboard" className="auth__brand">
-                    <span className="auth__brand-mark">
-                        <LogoIcon />
-                    </span>
-                    <span className="auth__brand-text">
-                        <span className="auth__brand-name">ROTASI</span>
-                    </span>
-                </a>
-                <div className="auth__pitch">
-                    <h2 className="auth__pitch-title">
-                        Pendampingan <span>kehamilan, tenang.</span>
-                    </h2>
-                    <p className="auth__pitch-lede">
-                        Pemantauan tensi, gejala bahaya, gerakan janin, dan sinkronisasi pasien —
-                        seluruh praktik bidan terlihat dari satu dashboard yang tenang.
-                    </p>
-                </div>
-            </aside>
         </main>
     );
 }

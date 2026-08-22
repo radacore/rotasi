@@ -11,16 +11,61 @@ import axios from 'axios';
 const randomToken = () =>
     [...Array(32)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 
+function parseVersionFromFilename(name) {
+    const base = String(name || '').replace(/\.apk$/i, '');
+    // rotasi-1.0.10, rotasi_v1.2.3, app-1.0.10(101), 1.0.10, v1.2.3
+    const m = base.match(/(\d+)\.(\d+)\.(\d+)/);
+    if (!m) return null;
+    const versionName = `${m[1]}.${m[2]}.${m[3]}`;
+    const versionCode = parseInt(`${m[1]}${String(m[2]).padStart(2, '0')}${String(m[3]).padStart(2, '0')}`, 10);
+    // cari angka dalam kurung sebagai versionCode eksplisit
+    const paren = base.match(/\((\d+)\)/);
+    return {
+        version_name: versionName,
+        version_code: paren ? parseInt(paren[1], 10) : versionCode,
+    };
+}
+
 export default function ApkIndex({ releases, errors }) {
     const toast = useToast();
+    const maxCode = Math.max(0, ...releases.data.map((r) => r.version_code ?? 0));
     const { data, setData, setError, reset } = useForm({
         version_code: '',
         version_name: '',
         release_notes: '',
         apk: null,
-        download_url: '',
-        is_active: true,
     });
+
+    const onFileChange = (file) => {
+        setData((prev) => {
+            const next = { ...prev, apk: file };
+            if (file) {
+                const parsed = parseVersionFromFilename(file.name);
+                if (parsed) {
+                    // isi otomatis hanya jika field kosong atau masih nilai auto sebelumnya
+                    if (!String(prev.version_name).trim()) next.version_name = parsed.version_name;
+                    else {
+                        const prevParsed = parseVersionFromFilename(prev.apk?.name || '');
+                        if (prevParsed && prevParsed.version_name === prev.version_name) {
+                            next.version_name = parsed.version_name;
+                        }
+                    }
+                    if (!String(prev.version_code).trim()) next.version_code = String(parsed.version_code);
+                    else {
+                        const prevParsed = parseVersionFromFilename(prev.apk?.name || '');
+                        if (prevParsed && String(prevParsed.version_code) === String(prev.version_code)) {
+                            next.version_code = String(parsed.version_code);
+                        }
+                    }
+                    // fallback: kalau masih kosong, pakai max+1
+                    if (!String(next.version_code).trim()) next.version_code = String(maxCode + 1);
+                } else if (!String(prev.version_code).trim()) {
+                    next.version_code = String(maxCode + 1);
+                }
+            }
+            return next;
+        });
+    };
 
     const [confirmTarget, setConfirmTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
@@ -30,8 +75,8 @@ export default function ApkIndex({ releases, errors }) {
     const submit = async (e) => {
         e.preventDefault();
 
-        if (!data.apk && !data.download_url) {
-            setError('download_url', 'File APK atau URL unduhan wajib diisi.');
+        if (!data.apk) {
+            setError('apk', 'Pilih file APK terlebih dahulu.');
             return;
         }
 
@@ -39,14 +84,8 @@ export default function ApkIndex({ releases, errors }) {
         fd.append('version_code', data.version_code);
         fd.append('version_name', data.version_name);
         fd.append('release_notes', data.release_notes || '');
-        fd.append('is_active', data.is_active ? '1' : '');
-        if (data.apk) {
-            fd.append('apk', data.apk);
-            fd.append('upload_token', randomToken());
-        }
-        if (data.download_url) {
-            fd.append('download_url', data.download_url);
-        }
+        fd.append('apk', data.apk);
+        fd.append('upload_token', randomToken());
 
         setUploading(true);
         setProgress(0);
@@ -70,6 +109,7 @@ export default function ApkIndex({ releases, errors }) {
             }
         };
 
+        const token = fd.get('upload_token');
         const post = axios.post('/apk', fd, {
             headers: { Accept: 'application/json' },
             onUploadProgress: (evt) => {
@@ -83,11 +123,8 @@ export default function ApkIndex({ releases, errors }) {
         });
 
         try {
-            await Promise.all([
-                post,
-                data.apk ? pollProgress(fd.get('upload_token')) : Promise.resolve(),
-            ]);
-            toast('Rilis APK berhasil diunggah.');
+            await Promise.all([post, pollProgress(token)]);
+            toast('Rilis APK berhasil diunggah dan diaktifkan.');
             reset();
             router.reload();
         } catch (err) {
@@ -141,9 +178,29 @@ export default function ApkIndex({ releases, errors }) {
                     </div>
                     <form onSubmit={submit}>
                         <div className="card__body flex flex-col gap-6">
+                            <div className="field">
+                                <label htmlFor="apk" className="field__label">
+                                    File APK <span className="text-danger">*</span>
+                                </label>
+                                <input
+                                    id="apk"
+                                    type="file"
+                                    accept=".apk,application/vnd.android.package-archive"
+                                    className="input"
+                                    disabled={uploading}
+                                    onChange={(e) => onFileChange(e.target.files[0] ?? null)}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Pilih file seperti <code>rotasi-1.0.10.apk</code> — kode &amp; nama versi akan terisi otomatis. Otomatis jadi versi aktif.
+                                </p>
+                                {errors.apk && <p className="field__error">{errors.apk}</p>}
+                            </div>
+
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="field">
-                                    <label htmlFor="version_code" className="field__label">Kode Versi</label>
+                                    <label htmlFor="version_code" className="field__label">
+                                        Kode Versi <span className="text-muted-foreground font-normal">(otomatis)</span>
+                                    </label>
                                     <input
                                         id="version_code"
                                         type="number"
@@ -151,17 +208,21 @@ export default function ApkIndex({ releases, errors }) {
                                         className="input"
                                         value={data.version_code}
                                         disabled={uploading}
+                                        placeholder={String(maxCode + 1)}
                                         onChange={(e) => setData('version_code', e.target.value)}
                                     />
                                     {errors.version_code && <p className="field__error">{errors.version_code}</p>}
                                 </div>
                                 <div className="field">
-                                    <label htmlFor="version_name" className="field__label">Nama Versi</label>
+                                    <label htmlFor="version_name" className="field__label">
+                                        Nama Versi <span className="text-muted-foreground font-normal">(otomatis)</span>
+                                    </label>
                                     <input
                                         id="version_name"
                                         className="input"
                                         value={data.version_name}
                                         disabled={uploading}
+                                        placeholder="mis. 1.0.10"
                                         onChange={(e) => setData('version_name', e.target.value)}
                                     />
                                     {errors.version_name && <p className="field__error">{errors.version_name}</p>}
@@ -174,50 +235,11 @@ export default function ApkIndex({ releases, errors }) {
                                     id="release_notes"
                                     rows={3}
                                     className="textarea"
+                                    placeholder="Opsional"
                                     value={data.release_notes}
                                     disabled={uploading}
                                     onChange={(e) => setData('release_notes', e.target.value)}
                                 />
-                            </div>
-
-                            <div className="field">
-                                <label htmlFor="apk" className="field__label">File APK</label>
-                                <input
-                                    id="apk"
-                                    type="file"
-                                    accept=".apk,application/vnd.android.package-archive"
-                                    className="input"
-                                    disabled={uploading}
-                                    onChange={(e) => setData('apk', e.target.files[0])}
-                                />
-                                {errors.apk && <p className="field__error">{errors.apk}</p>}
-                            </div>
-
-                            <div className="field">
-                                <label htmlFor="download_url" className="field__label">Atau URL Unduhan</label>
-                                <input
-                                    id="download_url"
-                                    className="input"
-                                    placeholder="https://..."
-                                    value={data.download_url}
-                                    disabled={uploading}
-                                    onChange={(e) => setData('download_url', e.target.value)}
-                                />
-                                {errors.download_url && <p className="field__error">{errors.download_url}</p>}
-                            </div>
-
-                            <div className="field flex items-center gap-3">
-                                <label className="flex items-center gap-2 cursor-pointer" htmlFor="is_active">
-                                    <input
-                                        id="is_active"
-                                        type="checkbox"
-                                        className="checkbox"
-                                        checked={data.is_active}
-                                        disabled={uploading}
-                                        onChange={(e) => setData('is_active', e.target.checked)}
-                                    />
-                                    Jadikan versi aktif
-                                </label>
                             </div>
                         </div>
                         <div className="card__footer flex flex-col gap-3">

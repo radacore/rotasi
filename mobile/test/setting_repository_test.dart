@@ -72,7 +72,8 @@ void main() {
   test('fetchRemote gagal -> memakai cache lokal', () async {
     SharedPreferences.setMockInitialValues({});
     final offline = SettingRepository(api: _FakeApi(500, '{}'));
-    expect(await offline.fetchRemote(), isNull);
+    // offline tanpa cache -> fallback asset (bukan null) agar tidak blank
+    expect(await offline.fetchRemote(), isNotNull);
 
     // Simpan cache dulu lalu offline.
     final online = SettingRepository(api: _FakeApi(200, _json(phone: '118')));
@@ -84,9 +85,13 @@ void main() {
     expect(fromCache!.emergencyPhone, '118');
   });
 
-  test('getLocal tanpa cache -> null', () async {
+  test('getLocal tanpa cache -> fallback asset (anti hang spinner)', () async {
     final repo = SettingRepository(api: _FakeApi(500, '{}'));
-    expect(await repo.getLocal(), isNull);
+    // getLocal sekarang fallback ke asset bila belum ada cache agar
+    // halaman tidak stuck loading (lihat fix hang di TC-KM6).
+    final local = await repo.getLocal();
+    expect(local, isNotNull);
+    expect(local!.emergencyPhone, '119');
   });
 
   test('ensureSeeded mengisi cache dari asset bawaan', () async {

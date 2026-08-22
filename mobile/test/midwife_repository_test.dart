@@ -70,9 +70,13 @@ void main() {
     expect(fromCache.length, 2);
   });
 
-  test('getLocal tanpa cache -> kosong', () async {
+  test('getLocal tanpa cache -> fallback asset (anti hang spinner)', () async {
     final repo = MidwifeRepository(api: _FakeApi(500, '{}'));
-    expect(await repo.getLocal(), isEmpty);
+    // getLocal fallback ke asset bila prefs belum ada, agar halaman
+    // tidak stuck spinner (fix hang di TECNO KM6).
+    final local = await repo.getLocal();
+    expect(local, isNotEmpty);
+    expect(local.first.name, 'Lusi');
   });
 
   test('ensureSeeded mengisi cache dari asset bawaan', () async {

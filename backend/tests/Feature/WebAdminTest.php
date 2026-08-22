@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Media;
 use App\Models\Midwife;
 use App\Models\Patient;
 use App\Models\SyncLog;
@@ -235,7 +234,7 @@ class WebAdminTest extends TestCase
         ])->assertRedirect('/settings');
     }
 
-    public function test_apk_upload_accepts_external_download_url(): void
+    public function test_apk_upload_rejects_without_file(): void
     {
         Storage::fake('media');
         $this->mock(\App\Services\S3UploadWithProgress::class);
@@ -247,9 +246,33 @@ class WebAdminTest extends TestCase
             'version_code' => 12,
             'version_name' => '1.2.0',
             'download_url' => 'https://example.com/app.apk',
+        ])->assertSessionHasErrors('apk');
+
+        $this->assertDatabaseMissing('apk_releases', ['version_code' => 12]);
+    }
+
+    public function test_apk_upload_auto_activates(): void
+    {
+        Storage::fake('media');
+        $this->mock(\App\Services\S3UploadWithProgress::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn('apk-releases/fake-auto.apk');
+        });
+
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        $path = tempnam(sys_get_temp_dir(), 'apk');
+        file_put_contents($path, 'PK' . random_bytes(128));
+        $file = new UploadedFile($path, 'rotasi-1.2.0.apk', 'application/vnd.android.package-archive', null, true);
+
+        $this->post('/apk', [
+            'version_code' => 13,
+            'version_name' => '1.2.0',
+            'apk' => $file,
         ])->assertRedirect('/apk');
 
-        $this->assertDatabaseHas('apk_releases', ['version_code' => 12, 'file_path' => null, 'download_url' => 'https://example.com/app.apk']);
+        $this->assertDatabaseHas('apk_releases', ['version_code' => 13, 'is_active' => true]);
+        $this->assertDatabaseMissing('apk_releases', ['is_active' => false, 'version_code' => 13]);
     }
 
     public function test_apk_upload_fails_without_silent_broken_record(): void
@@ -327,27 +350,6 @@ class WebAdminTest extends TestCase
 
         $this->get('/sync-logs')->assertOk();
         $this->get('/sync-logs?status=success')->assertOk();
-    }
-
-    public function test_media_page_and_upload(): void
-    {
-        Storage::fake('media');
-
-        $admin = $this->admin();
-        $this->actingAs($admin);
-
-        $this->get('/media')->assertOk();
-
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
-        $path = tempnam(sys_get_temp_dir(), 'webimg');
-        file_put_contents($path, $png);
-        $file = new UploadedFile($path, 'ilustrasi.png', 'image/png', null, true);
-
-        $this->post('/media', ['file' => $file])->assertRedirect();
-
-        $media = Media::first();
-        $this->assertNotNull($media);
-        Storage::disk('media')->assertExists($media->disk_path);
     }
 
     public function test_account_change_password(): void

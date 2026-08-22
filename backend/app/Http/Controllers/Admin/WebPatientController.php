@@ -14,8 +14,15 @@ class WebPatientController extends Controller
     {
         $query = Patient::query()->orderByDesc('updated_at');
 
-        if ($risk = $request->query('risk')) {
+        $risk = $request->query('risk');
+        $search = trim((string) $request->query('search', ''));
+
+        if ($risk) {
             $query->where('risk_level', $risk);
+        }
+
+        if ($search !== '') {
+            $query->where('name', 'like', "%{$search}%");
         }
 
         $patients = $query->paginate(15)->withQueryString();
@@ -41,8 +48,20 @@ class WebPatientController extends Controller
 
         return inertia('Patients/Index', [
             'patients' => $patients,
-            'filters' => ['risk' => $risk],
+            'filters' => ['risk' => $risk, 'search' => $search],
         ]);
+    }
+
+    public function destroy(string $patientUuid)
+    {
+        $patient = Patient::find($patientUuid);
+        if (! $patient) {
+            abort(404);
+        }
+        SyncLog::where('patient_uuid', $patientUuid)->delete();
+        $patient->delete();
+
+        return redirect()->route('patients.index')->with('success', 'Pasien dihapus.');
     }
 
     public function show(string $patientUuid)
@@ -63,6 +82,36 @@ class WebPatientController extends Controller
             ->limit(20)
             ->get(['id', 'status', 'records_count', 'synced_at']);
 
+        $bmi = null;
+        if ($patient->height_cm && (float) $patient->height_cm > 0) {
+            $h = (float) $patient->height_cm / 100;
+            $bmi = (float) $patient->weight_kg / ($h * $h);
+        }
+
+        $historyLabels = [
+            'none' => 'Tidak ada',
+            'hypertension' => 'Hipertensi',
+            'prior_preeclampsia' => 'Pernah preeklamsia',
+            'family' => 'Riwayat turunan',
+        ];
+
+        $riskFactors = [];
+        if (($patient->history_type ?? 'none') !== 'none') {
+            $riskFactors[] = $historyLabels[$patient->history_type] ?? $patient->history_type;
+        }
+        if (($patient->age ?? 0) > 35) {
+            $riskFactors[] = 'Usia > 35 tahun';
+        }
+        if ($bmi !== null && $bmi > 30) {
+            $riskFactors[] = 'IMT '.number_format($bmi, 1);
+        }
+
+        $recommendation = match ($patient->risk_level) {
+            'high' => 'Risiko tinggi. Segera konsultasikan ke tenaga kesehatan untuk penanganan khusus.',
+            'medium' => 'Risiko sedang. Konsultasikan dengan bidan untuk pemantauan lebih ketat.',
+            default => 'Risiko rendah. Lanjutkan pola hidup sehat dan kontrol ANC rutin.',
+        };
+
         return inertia('Patients/Show', [
             'patient' => [
                 'uuid' => $patient->uuid,
@@ -70,12 +119,16 @@ class WebPatientController extends Controller
                 'age' => $patient->age,
                 'height_cm' => $patient->height_cm,
                 'weight_kg' => $patient->weight_kg,
+                'bmi' => $bmi !== null ? round($bmi, 1) : null,
                 'gestational_weeks' => $patient->gestational_weeks,
                 'due_date' => $patient->due_date?->toDateString(),
                 'last_systolic' => $patient->last_systolic,
                 'last_diastolic' => $patient->last_diastolic,
                 'history_type' => $patient->history_type,
+                'history_label' => $historyLabels[$patient->history_type] ?? $patient->history_type ?? '-',
                 'risk_level' => $patient->risk_level,
+                'risk_factors' => $riskFactors,
+                'recommendation' => $recommendation,
                 'phone' => $patient->phone,
                 'device_uuid' => $patient->device_uuid,
             ],
@@ -108,14 +161,26 @@ class WebPatientController extends Controller
             'kick_counts' => $patient->kickCounts->map(fn ($k) => [
                 'uuid' => $k->uuid,
                 'started_at' => $k->started_at?->toDateTimeString(),
+                'ended_at' => $k->ended_at?->toDateTimeString(),
                 'kick_count' => $k->kick_count,
                 'is_active' => $k->is_active,
             ])->all(),
-            'anc_checks' => $patient->ancChecks->map(fn ($a) => [
-                'uuid' => $a->uuid,
-                'visited_at' => $a->visited_at?->toDateString(),
-                't_items_count' => count($a->t_items ?? []),
-            ])->all(),
+            'anc_checks' => $patient->ancChecks->map(function ($a) {
+                $items = $a->t_items ?? [];
+                $labels = [
+                    't1' => 'Berat Badan', 't2' => 'Tekanan Darah', 't3' => 'Tinggi Fundus',
+                    't4' => 'Letak Janin', 't5' => 'DJJ', 't6' => 'Imunisasi TT',
+                    't7' => 'Tablet Tambah Darah', 't8' => 'Pemeriksaan Lab',
+                    't9' => 'Tatalaksana', 't10' => 'Konseling',
+                ];
+                return [
+                    'uuid' => $a->uuid,
+                    'visited_at' => $a->visited_at?->toDateString(),
+                    't_items' => $items,
+                    't_items_count' => count($items),
+                    't_items_labels' => array_map(fn ($c) => $labels[$c] ?? $c, $items),
+                ];
+            })->all(),
             'sync_logs' => $syncLogs->map(fn ($s) => [
                 'id' => $s->id,
                 'status' => $s->status,

@@ -81,12 +81,39 @@ export default function PatientsShow({ patient, counts, bp_records, symptom_chec
                             <Detail label="Umur" value={`${patient.age ?? '-'} tahun`} />
                             <Detail label="Tinggi" value={patient.height_cm != null ? `${patient.height_cm} cm` : null} />
                             <Detail label="Berat" value={patient.weight_kg != null ? `${patient.weight_kg} kg` : null} />
+                            <Detail
+                                label="IMT"
+                                value={patient.bmi != null ? `${patient.bmi}` : '-'}
+                            />
                             <Detail label="Usia Kehamilan" value={patient.gestational_weeks != null ? `${patient.gestational_weeks} minggu` : null} />
                             <Detail label="HPL" value={patient.due_date} />
-                            <Detail label="Riwayat" value={patient.history_type} />
+                            <Detail
+                                label="TD Awal"
+                                value={
+                                    patient.last_systolic != null && patient.last_diastolic != null
+                                        ? `${patient.last_systolic}/${patient.last_diastolic} mmHg`
+                                        : '-'
+                                }
+                            />
+                            <Detail label="Riwayat" value={patient.history_label ?? patient.history_type ?? '-'} />
                             <Detail label="Telepon" value={patient.phone} />
                             <Detail label="Device" value={patient.device_uuid} />
                         </div>
+                        {(patient.risk_factors?.length > 0 || patient.recommendation) && (
+                            <div className="mt-6 rounded-lg border p-4 bg-muted/20">
+                                {patient.risk_factors?.length > 0 && (
+                                    <div className="mb-2">
+                                        <span className="text-sm font-medium">Faktor risiko: </span>
+                                        <span className="text-sm text-muted-foreground">
+                                            {patient.risk_factors.join(', ')}
+                                        </span>
+                                    </div>
+                                )}
+                                {patient.recommendation && (
+                                    <p className="text-sm text-muted-foreground">{patient.recommendation}</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
@@ -173,35 +200,44 @@ export default function PatientsShow({ patient, counts, bp_records, symptom_chec
                                     <th>Penglihatan Kabur</th>
                                     <th>Nyeri Ulu Hati</th>
                                     <th>Sesak Napas</th>
+                                    <th>Rujukan</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {symptom_checks.map((s) => (
-                                    <tr key={s.uuid}>
-                                        <td className="text-muted-foreground">{s.checked_at}</td>
-                                        {[
-                                            ['headache', s.headache],
-                                            ['blurred_vision', s.blurred_vision],
-                                            ['epigastric_pain', s.epigastric_pain],
-                                            ['shortness_of_breath', s.shortness_of_breath],
-                                        ].map(([name, v]) => (
-                                            <td key={name}>
-                                                <span
-                                                    className={`badge badge--soft ${v ? 'badge--danger' : 'badge--success'}`}
-                                                >
-                                                    {v ? 'Ya' : 'Tidak'}
+                                {symptom_checks.map((s) => {
+                                    const hasAny = s.headache || s.blurred_vision || s.epigastric_pain || s.shortness_of_breath;
+                                    return (
+                                        <tr key={s.uuid} className={hasAny ? 'bg-danger/5' : undefined}>
+                                            <td className="text-muted-foreground">{s.checked_at}</td>
+                                            {[
+                                                ['headache', s.headache],
+                                                ['blurred_vision', s.blurred_vision],
+                                                ['epigastric_pain', s.epigastric_pain],
+                                                ['shortness_of_breath', s.shortness_of_breath],
+                                            ].map(([name, v]) => (
+                                                <td key={name}>
+                                                    <span
+                                                        className={`badge badge--soft ${v ? 'badge--danger' : 'badge--success'}`}
+                                                    >
+                                                        {v ? 'Ya' : 'Tidak'}
+                                                    </span>
+                                                </td>
+                                            ))}
+                                            <td>
+                                                <span className={`badge badge--soft ${hasAny ? 'badge--danger' : 'badge--neutral'}`}>
+                                                    {hasAny ? 'Perlu rujukan' : '-'}
                                                 </span>
                                             </td>
-                                        ))}
-                                    </tr>
-                                ))}
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
                 )}
             </SectionCard>
 
-            <SectionCard title="Hitung Gerakan Janin" description="Sesi penghitungan gerakan janin.">
+            <SectionCard title="Hitung Gerakan Janin" description="Sesi 30 menit — ≥3 gerakan = aktif/normal.">
                 {kick_counts.length === 0 ? (
                     <EmptyRow label="Belum ada sesi hitung gerakan." />
                 ) : (
@@ -210,6 +246,7 @@ export default function PatientsShow({ patient, counts, bp_records, symptom_chec
                             <thead>
                                 <tr>
                                     <th>Dimulai</th>
+                                    <th>Selesai</th>
                                     <th>Jumlah Gerakan</th>
                                     <th>Status</th>
                                 </tr>
@@ -218,12 +255,13 @@ export default function PatientsShow({ patient, counts, bp_records, symptom_chec
                                 {kick_counts.map((k) => (
                                     <tr key={k.uuid}>
                                         <td className="text-muted-foreground">{k.started_at}</td>
+                                        <td className="text-muted-foreground">{k.ended_at ?? '-'}</td>
                                         <td className="font-medium">{k.kick_count}</td>
                                         <td>
                                             <span
                                                 className={`badge badge--soft ${k.is_active ? 'badge--success' : 'badge--neutral'}`}
                                             >
-                                                {k.is_active ? 'Berjalan' : 'Selesai'}
+                                                {k.is_active ? 'Aktif' : 'Selesai'}
                                             </span>
                                         </td>
                                     </tr>
@@ -234,7 +272,7 @@ export default function PatientsShow({ patient, counts, bp_records, symptom_chec
                 )}
             </SectionCard>
 
-            <SectionCard title="Kunjungan ANC" description="Riwayat kunjungan antenatal.">
+            <SectionCard title="Kunjungan ANC" description="Standar 10T — ceklis pemeriksaan antenatal.">
                 {anc_checks.length === 0 ? (
                     <EmptyRow label="Belum ada kunjungan ANC." />
                 ) : (
@@ -243,14 +281,34 @@ export default function PatientsShow({ patient, counts, bp_records, symptom_chec
                             <thead>
                                 <tr>
                                     <th>Tanggal Kunjungan</th>
-                                    <th>Item Pemeriksaan</th>
+                                    <th>Kelengkapan</th>
+                                    <th>Item Tercentang</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {anc_checks.map((a) => (
                                     <tr key={a.uuid}>
                                         <td className="text-muted-foreground">{a.visited_at}</td>
-                                        <td>{a.t_items_count} item</td>
+                                        <td>
+                                            <span className={`badge badge--soft ${a.t_items_count >= 10 ? 'badge--success' : a.t_items_count >= 5 ? 'badge--warning' : 'badge--neutral'}`}>
+                                                {a.t_items_count}/10
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {a.t_items_labels?.length ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {a.t_items_labels.map((label) => (
+                                                        <span key={label} className="badge badge--soft badge--neutral text-xs">
+                                                            {label}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : a.t_items?.length ? (
+                                                <span className="text-sm text-muted-foreground">{a.t_items.join(', ')}</span>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">-</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

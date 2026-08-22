@@ -41,40 +41,29 @@ class WebApkController extends Controller
             'version_code' => ['required', 'integer', 'min:1', 'unique:apk_releases,version_code'],
             'version_name' => ['required', 'string', 'max:50'],
             'release_notes' => ['nullable', 'string'],
-            'apk' => ['nullable', 'file', 'extensions:apk', 'max:307200'],
-            'download_url' => ['nullable', 'string', 'max:500'],
-            'is_active' => ['nullable', 'boolean'],
+            'apk' => ['required', 'file', 'extensions:apk', 'max:307200'],
             'upload_token' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $downloadUrl = $data['download_url'] ?? null;
         $disk = Storage::disk('media');
-        $filePath = null;
+        $file = $request->file('apk');
 
-        if ($request->hasFile('apk')) {
-            $file = $request->file('apk');
+        try {
+            $filePath = $this->uploads->upload(
+                'apk-releases',
+                $file->getPathname(),
+                str()->random(40).'.'.$file->getClientOriginalExtension(),
+                $file->getSize(),
+                $request->string('upload_token', ''),
+                $file->getClientOriginalName(),
+            );
+        } catch (\Throwable $e) {
+            report($e);
 
-            try {
-                $filePath = $this->uploads->upload(
-                    'apk-releases',
-                    $file->getPathname(),
-                    str()->random(40).'.'.$file->getClientOriginalExtension(),
-                    $file->getSize(),
-                    $request->string('upload_token', ''),
-                    $file->getClientOriginalName(),
-                );
-            } catch (\Throwable $e) {
-                report($e);
-
-                return $this->uploadFailed($request, 'Upload file ke penyimpanan gagal. Silakan coba lagi.');
-            }
-
-            $downloadUrl = $disk->url($filePath);
+            return $this->uploadFailed($request, 'Upload file ke penyimpanan gagal. Silakan coba lagi.');
         }
 
-        if (! $downloadUrl) {
-            return $this->uploadFailed($request, 'download_url atau file apk wajib diisi.');
-        }
+        $downloadUrl = $disk->url($filePath);
 
         $release = ApkRelease::create([
             'version_code' => $data['version_code'],
@@ -85,9 +74,7 @@ class WebApkController extends Controller
             'uploaded_at' => now(),
         ]);
 
-        if ($request->boolean('is_active')) {
-            $release->activate();
-        }
+        $release->activate();
 
         if ($request->expectsJson()) {
             return response()->json([

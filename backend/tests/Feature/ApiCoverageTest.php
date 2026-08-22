@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\ApkRelease;
 use App\Models\BpRecord;
-use App\Models\Media;
 use App\Models\Midwife;
 use App\Models\Patient;
 use App\Models\SyncLog;
@@ -198,24 +197,4 @@ class ApiCoverageTest extends TestCase
         $this->assertEquals('apk-releases/fake-api.apk', $release->file_path);
     }
 
-    public function test_admin_media_upload_to_object_storage(): void
-    {
-        Storage::fake('media');
-        $token = $this->adminToken();
-
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
-        $path = tempnam(sys_get_temp_dir(), 'img');
-        file_put_contents($path, $png);
-        $file = new UploadedFile($path, 'ilustrasi.png', 'image/png', null, true);
-
-        $resp = $this->withToken($token)
-            ->postJson('/api/admin/media', ['file' => $file])
-            ->assertCreated();
-
-        $this->assertArrayHasKey('url', $resp->json('data'));
-
-        $media = Media::first();
-        $this->assertNotNull($media);
-        Storage::disk('media')->assertExists($media->disk_path);
-    }
 }

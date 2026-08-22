@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BookletReleaseController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MidwifeController;
-use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PatientController as AdminPatientController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SyncLogController;
@@ -59,10 +58,6 @@ Route::prefix('admin')->group(function () {
         Route::get('midwives/{id}', [MidwifeController::class, 'show']);
         Route::put('midwives/{id}', [MidwifeController::class, 'update']);
         Route::delete('midwives/{id}', [MidwifeController::class, 'destroy']);
-
-        Route::get('media', [MediaController::class, 'index']);
-        Route::post('media', [MediaController::class, 'store']);
-        Route::delete('media/{id}', [MediaController::class, 'destroy']);
 
         Route::get('settings', [SettingController::class, 'show']);
         Route::put('settings', [SettingController::class, 'update']);

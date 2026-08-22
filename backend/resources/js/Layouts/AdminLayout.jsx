@@ -9,8 +9,6 @@ import {
     DashboardIcon,
     GearIcon,
     HeartPulseIcon,
-    ImageIcon,
-    LogoIcon,
     LogoutIcon,
     MenuIcon,
     MoonIcon,
@@ -34,7 +32,6 @@ const navGroups = [
         items: [
             { href: '/patients', label: 'Pasien', Icon: HeartPulseIcon },
             { href: '/sync-logs', label: 'Sinkronisasi', Icon: RefreshIcon },
-            { href: '/media', label: 'Media', Icon: ImageIcon },
             { href: '/apk', label: 'Rilis APK', Icon: BoxIcon },
         ],
     },
@@ -129,9 +126,21 @@ export default function AdminLayout({ children }) {
                 data-collapsed={collapsed ? '' : undefined}
             >
                 <header className="sidebar__header">
-                    <Link className="sidebar__brand" href="/dashboard">
-                        <LogoIcon className="text-primary" />
-                        <span>ROTASI</span>
+                    <Link className="sidebar__brand flex items-center gap-2.5" href="/dashboard" aria-label="ROTASI — Roda Pantau Tensi">
+                        <img
+                            src="/logo-72.png"
+                            srcSet="/logo-72.png 1x, /logo-140.png 2x"
+                            alt="ROTASI"
+                            className="h-8 w-8 shrink-0 object-contain"
+                            width="32"
+                            height="32"
+                            loading="eager"
+                            decoding="async"
+                        />
+                        <span className="flex flex-col leading-none">
+                            <span className="text-[15px] font-bold tracking-[0.14em]">ROTASI</span>
+                            <span className="text-[10px] font-medium tracking-wide text-muted-foreground">Roda Pantau Tensi</span>
+                        </span>
                     </Link>
                 </header>
 

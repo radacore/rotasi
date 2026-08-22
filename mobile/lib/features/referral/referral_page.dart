@@ -24,28 +24,74 @@ class ReferralPage extends StatefulWidget {
 
 class _ReferralPageState extends State<ReferralPage> {
   late final SettingRepository _repository;
-  ReferralSettings? _settings;
-  bool _loading = true;
+  ReferralSettings? _settings = const ReferralSettings(
+    appName: 'ROTASI',
+    emergencyPhone: '119',
+    puskesmasName: 'Puskesmas Barombong',
+    rules: ReferralRules(
+      persistentColors: ['orange', 'red'],
+      symptomCheckTrigger: true,
+      kickThreshold: 3,
+    ),
+  );
+  bool _loading = false;
+  String _source = 'fallback';
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository ?? SettingRepository();
+    // Tampilkan fallback langsung (anti blank), lalu refresh di background.
     _load();
   }
 
   Future<void> _load() async {
-    if (_settings == null) setState(() => _loading = true);
-    final seeded = await _repository.ensureSeeded();
-    final local = seeded ?? await _repository.getLocal();
+    ReferralSettings? seeded;
+    ReferralSettings? local;
+    ReferralSettings? remote;
+    String? err;
+    try {
+      seeded = await _repository
+          .ensureSeeded()
+          .timeout(const Duration(seconds: 3));
+      local = seeded ??
+          await _repository.getLocal().timeout(const Duration(seconds: 2));
+      debugPrint(
+          '[ReferralPage] seeded=${seeded != null} local=${local != null} puskes=${local?.puskesmasName} phone=${local?.emergencyPhone}');
+    } catch (e) {
+      err = e.toString();
+      debugPrint('[ReferralPage] seed/local error: $err');
+    }
     if (!mounted) return;
-    setState(() {
-      if (local != null) _settings = local;
-      _loading = false;
-    });
-    final remote = await _repository.fetchRemote();
+    if (local != null) {
+      setState(() {
+        _settings = local;
+        _source = seeded != null ? 'seed' : 'lokal';
+        _error = err;
+      });
+    } else if (err != null) {
+      setState(() => _error = err);
+    }
+    try {
+      remote = await _repository
+          .fetchRemote()
+          .timeout(const Duration(seconds: 12));
+      debugPrint(
+          '[ReferralPage] remote puskes=${remote?.puskesmasName} phone=${remote?.emergencyPhone}');
+    } catch (e) {
+      debugPrint('[ReferralPage] remote error: $e');
+      if (!mounted) return;
+      setState(() => _error = '${_error == null ? '' : '$_error; '}remote:$e');
+      return;
+    }
     if (!mounted) return;
-    if (remote != null) setState(() => _settings = remote);
+    if (remote != null) {
+      setState(() {
+        _settings = remote;
+        _source = 'server';
+      });
+    }
   }
 
   Future<void> _call(String phone) async {
@@ -73,6 +119,25 @@ class _ReferralPageState extends State<ReferralPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (_error != null)
+                    Card(
+                      color: Colors.amber.shade100,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text('Diagnosa: $_error\nsumber:$_source',
+                            style: const TextStyle(fontSize: 12)),
+                      ),
+                    )
+                  else if (_source.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text('Sumber: $_source',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppColors.textSecondary)),
+                    ),
                   const _DisclaimerCard(),
                   const SizedBox(height: 12),
                   if (_settings == null)
