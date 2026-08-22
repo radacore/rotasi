@@ -182,6 +182,14 @@ void main() {
 
       expect(find.bySemanticsLabel('Hubungi Bidan'), findsOneWidget);
     });
+
+    testWidgets('first launch (Selamat Datang) menyembunyikan Hubungi Bidan',
+        (tester) async {
+      await _pumpApp(tester, FakePatientRepository());
+
+      expect(find.text('Selamat Datang'), findsOneWidget);
+      expect(find.bySemanticsLabel('Hubungi Bidan'), findsNothing);
+    });
   });
 
   group('RegistrationPage', () {

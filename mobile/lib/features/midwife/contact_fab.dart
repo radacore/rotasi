@@ -7,16 +7,31 @@ import 'midwife_page.dart';
 /// mengambang di atas screen itu sendiri.
 const midwifeRouteName = '/hubungi-bidan';
 
+/// Route registrasi awal (Selamat Datang) — FAB disembunyikan di sini.
+const registrationRouteName = '/registration';
+
 /// Hijau resmi WhatsApp.
 const whatsappGreen = Color(0xFF25D366);
 
 /// Melacak route aktif untuk menyembunyikan tombol mengambang saat berada
 /// di halaman Hubungi Bidan atau saat ada dialog/bottom sheet di atas.
 class ContactFabVisibility extends NavigatorObserver {
-  final ValueNotifier<bool> visible = ValueNotifier(true);
+  /// Awalnya sembunyikan agar tidak kedip di loading first-launch.
+  final ValueNotifier<bool> visible = ValueNotifier(false);
   final List<Route<dynamic>> _stack = [];
+  bool registrationHidden = true;
+
+  /// Dipanggil StartupGate saat di layar Selamat Datang (first-launch).
+  void setRegistrationHidden(bool hidden) {
+    registrationHidden = hidden;
+    _sync();
+  }
 
   void _sync() {
+    if (registrationHidden) {
+      visible.value = false;
+      return;
+    }
     if (_stack.isEmpty) {
       visible.value = true;
       return;
@@ -24,7 +39,8 @@ class ContactFabVisibility extends NavigatorObserver {
     final top = _stack.last;
     final hide = (top is ModalRoute && !top.opaque) ||
         top.settings.name == midwifeRouteName ||
-        top.settings.name == bookletViewerRouteName;
+        top.settings.name == bookletViewerRouteName ||
+        top.settings.name == registrationRouteName;
     visible.value = !hide;
   }
 
