@@ -27,49 +27,49 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
     _c = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 3000),
     );
-    // Logo pop-in elastis biar hidup, lalu mengecil pindah kiri.
+    // Logo napas dulu di tengah (pop-in elastis), lalu pelan mengecil geser kiri.
     _entranceScale = Tween<double>(begin: 0.78, end: 1.0).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.0, 0.22, curve: Curves.elasticOut),
+        curve: const Interval(0.0, 0.18, curve: Curves.elasticOut),
       ),
     );
     _logoSize = Tween<double>(begin: 96, end: 52).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.26, 0.62, curve: Curves.easeInOutCubicEmphasized),
+        curve: const Interval(0.22, 0.58, curve: Curves.easeInOutCubicEmphasized),
       ),
     );
-    // Rotasi muncul duluan dengan sedikit overshoot
+    // Rotasi muncul dengan overshoot ringan setelah logo mulai gerak
     _titleOpacity = CurvedAnimation(
       parent: _c,
-      curve: const Interval(0.32, 0.62, curve: Curves.easeOut),
+      curve: const Interval(0.30, 0.58, curve: Curves.easeOut),
     );
     _titleSlide =
         Tween<Offset>(begin: const Offset(0.22, 0), end: Offset.zero).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.32, 0.66, curve: Curves.easeOutBack),
+        curve: const Interval(0.30, 0.62, curve: Curves.easeOutBack),
       ),
     );
     _titleScale = Tween<double>(begin: 0.92, end: 1.0).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.32, 0.66, curve: Curves.easeOutBack),
+        curve: const Interval(0.30, 0.62, curve: Curves.easeOutBack),
       ),
     );
-    // Subtitle nyusul 180ms kemudian
+    // Subtitle nyusul biar stagger hidup
     _subtitleOpacity = CurvedAnimation(
       parent: _c,
-      curve: const Interval(0.48, 0.78, curve: Curves.easeOut),
+      curve: const Interval(0.46, 0.74, curve: Curves.easeOut),
     );
     _subtitleSlide =
         Tween<Offset>(begin: const Offset(0.16, 0), end: Offset.zero).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.48, 0.80, curve: Curves.easeOutCubic),
+        curve: const Interval(0.46, 0.76, curve: Curves.easeOutCubic),
       ),
     );
     _c.forward();
