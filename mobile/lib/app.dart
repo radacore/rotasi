@@ -16,13 +16,13 @@ class RotasiApp extends StatefulWidget {
     this.repository,
     this.bpRepository,
     this.syncService,
-    this.splashMinDuration = const Duration(milliseconds: 1400),
+    this.splashMinDuration = const Duration(milliseconds: 2600),
   });
 
   final PatientRepository? repository;
   final BpRepository? bpRepository;
   final SyncService? syncService;
-  /// Durasi minimal splash terlihat (animasi 1200ms + hold). 0 untuk test.
+  /// Durasi minimal splash terlihat (animasi 2200ms + hold 400ms). 0 untuk test.
   final Duration splashMinDuration;
 
   @override
@@ -69,7 +69,7 @@ class StartupGate extends StatefulWidget {
     this.bpRepository,
     this.syncService,
     this.fabVisibility,
-    this.splashMinDuration = const Duration(milliseconds: 1400),
+    this.splashMinDuration = const Duration(milliseconds: 2600),
   });
 
   final PatientRepository? repository;

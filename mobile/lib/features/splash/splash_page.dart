@@ -14,33 +14,62 @@ class SplashPage extends StatefulWidget {
 class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
+  late final Animation<double> _entranceScale;
   late final Animation<double> _logoSize;
-  late final Animation<double> _textOpacity;
-  late final Animation<Offset> _textSlide;
+  late final Animation<double> _titleOpacity;
+  late final Animation<Offset> _titleSlide;
+  late final Animation<double> _titleScale;
+  late final Animation<double> _subtitleOpacity;
+  late final Animation<Offset> _subtitleSlide;
 
   @override
   void initState() {
     super.initState();
     _c = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 2200),
     );
-    // 0-25% hold, 25-75% gerak, 75-100% hold
+    // Logo pop-in elastis biar hidup, lalu mengecil pindah kiri.
+    _entranceScale = Tween<double>(begin: 0.78, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _c,
+        curve: const Interval(0.0, 0.22, curve: Curves.elasticOut),
+      ),
+    );
     _logoSize = Tween<double>(begin: 96, end: 52).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.22, 0.72, curve: Curves.easeInOutCubic),
+        curve: const Interval(0.26, 0.62, curve: Curves.easeInOutCubicEmphasized),
       ),
     );
-    _textOpacity = CurvedAnimation(
+    // Rotasi muncul duluan dengan sedikit overshoot
+    _titleOpacity = CurvedAnimation(
       parent: _c,
-      curve: const Interval(0.28, 0.75, curve: Curves.easeOut),
+      curve: const Interval(0.32, 0.62, curve: Curves.easeOut),
     );
-    _textSlide = Tween<Offset>(begin: const Offset(0.18, 0), end: Offset.zero)
-        .animate(
+    _titleSlide =
+        Tween<Offset>(begin: const Offset(0.22, 0), end: Offset.zero).animate(
       CurvedAnimation(
         parent: _c,
-        curve: const Interval(0.28, 0.78, curve: Curves.easeOutCubic),
+        curve: const Interval(0.32, 0.66, curve: Curves.easeOutBack),
+      ),
+    );
+    _titleScale = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _c,
+        curve: const Interval(0.32, 0.66, curve: Curves.easeOutBack),
+      ),
+    );
+    // Subtitle nyusul 180ms kemudian
+    _subtitleOpacity = CurvedAnimation(
+      parent: _c,
+      curve: const Interval(0.48, 0.78, curve: Curves.easeOut),
+    );
+    _subtitleSlide =
+        Tween<Offset>(begin: const Offset(0.16, 0), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _c,
+        curve: const Interval(0.48, 0.80, curve: Curves.easeOutCubic),
       ),
     );
     _c.forward();
@@ -64,39 +93,50 @@ class _SplashPageState extends State<SplashPage>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/logo.png',
-                  width: _logoSize.value,
-                  height: _logoSize.value,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => SizedBox(
+                ScaleTransition(
+                  scale: _entranceScale,
+                  child: Image.asset(
+                    'assets/logo.png',
                     width: _logoSize.value,
                     height: _logoSize.value,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => SizedBox(
+                      width: _logoSize.value,
+                      height: _logoSize.value,
+                    ),
                   ),
                 ),
-                      // RS: Rotasi warna beda di-richtext
-                SizedBox(width: _textOpacity.value * 14),
-                FadeTransition(
-                  opacity: _textOpacity,
-                  child: SlideTransition(
-                    position: _textSlide,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Rotasi',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            height: 1.0,
-                            letterSpacing: 0.8,
-                            color: Colors.white,
+                SizedBox(width: _titleOpacity.value * 14),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FadeTransition(
+                      opacity: _titleOpacity,
+                      child: SlideTransition(
+                        position: _titleSlide,
+                        child: ScaleTransition(
+                          scale: _titleScale,
+                          child: const Text(
+                            'Rotasi',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              height: 1.0,
+                              letterSpacing: 0.8,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        RichText(
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FadeTransition(
+                      opacity: _subtitleOpacity,
+                      child: SlideTransition(
+                        position: _subtitleSlide,
+                        child: RichText(
                           text: TextSpan(
                             style: TextStyle(
                               fontFamily: 'PlusJakartaSans',
@@ -110,7 +150,7 @@ class _SplashPageState extends State<SplashPage>
                               TextSpan(
                                 text: 'RO',
                                 style: TextStyle(
-                                  color: Color(0xFFF59E0B), // sun - highlight
+                                  color: Color(0xFFF59E0B),
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -138,9 +178,9 @@ class _SplashPageState extends State<SplashPage>
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             );
