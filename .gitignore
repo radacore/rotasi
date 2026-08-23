@@ -5,3 +5,9 @@ meridian.zip
 booklet.zip
 booklet/
 *-qr.png
+
+# APK/AAB/IPA jangan kepush (68MB) — cukup build lokal via flutter build apk
+*.apk
+*.aab
+*.ipa
+*.sha1
