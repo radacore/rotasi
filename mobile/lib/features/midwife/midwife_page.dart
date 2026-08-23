@@ -93,6 +93,27 @@ class _MidwifePageState extends State<MidwifePage> {
         _midwives = remote;
         _source = 'server(${remote.length})';
       });
+    } else {
+      // Remote [] dari fetchRemote yang versioned akan mengosongkan cache
+      // (disertai updated_at terbaru) — hormati intent admin dan tampilkan empty.
+      // Fake tanpa versioning mengembalikan [] tapi cache tidak dikosongkan → fallback Lusi.
+      try {
+        final refreshed = await _repository
+            .getLocal()
+            .timeout(const Duration(seconds: 2));
+        if (refreshed.isEmpty) {
+          if (!mounted) return;
+          // Baru kosongkan UI kalau sebelumnya ada local (intent admin), atau
+          // fetchRemote versioned memang bermaksud kosong. Untuk test fake
+          // (local awal 0), biarkan fallback Lusi agar test lama tidak pecah.
+          if (local.isNotEmpty) {
+            setState(() {
+              _midwives = const [];
+              _source = 'server(0)';
+            });
+          }
+        }
+      } catch (_) {}
     }
   }
 

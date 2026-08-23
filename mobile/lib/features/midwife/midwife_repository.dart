@@ -15,34 +15,52 @@ class MidwifeRepository {
   MidwifeRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
   static const _cacheKey = 'midwives_cache';
+  static const _updatedAtKey = 'midwives_updated_at';
   static const _seedAsset = 'assets/data/midwives.json';
 
   final ApiClient _api;
 
   /// Ambil daftar bidan dari server lalu simpan ke cache lokal.
+  ///
+  /// Versi baru: pakai `updated_at` + `?since=` untuk hemat kuota; `304`
+  /// berarti tidak ada perubahan — langsung pakai cache lokal.
+  /// Kompatibel lama: bila server masih kirim List di `data` tanpa `updated_at`, tetap diparse.
   Future<List<Midwife>> fetchRemote() async {
     try {
       await DeviceRegistrar(_api)
           .ensureRegistered()
           .timeout(const Duration(seconds: 12));
-      final res = await _api.get(ApiEndpoints.midwives);
-      if (res.statusCode >= 300) {
-        return await getLocal();
-      }
-      final data = (jsonDecode(res.body) as Map<String, dynamic>)['data']
-          as List<dynamic>;
-      final midwives = data
+      final prefs0 = await SharedPreferences.getInstance();
+      final since = prefs0.getString(_updatedAtKey);
+      final path = since == null || since.isEmpty
+          ? ApiEndpoints.midwives
+          : '${ApiEndpoints.midwives}?since=${Uri.encodeComponent(since)}';
+      final res = await _api.get(path);
+      if (res.statusCode == 304) return await getLocal();
+      if (res.statusCode >= 300) return await getLocal();
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final rawData = body['data'];
+      // Backend baru: data = List, updated_at di top-level. Lama: juga List.
+      final listJson = rawData is List ? rawData : (rawData is Map ? (rawData['items'] as List? ?? const []) : const []);
+      final remoteUpdatedAt = body['updated_at'] as String?
+          ?? (rawData is Map ? rawData['updated_at'] as String? : null);
+      final midwives = (listJson)
           .map((e) => Midwife.fromJson(e as Map<String, dynamic>))
           .toList();
-      // Jangan timpa seed valid dengan balasan kosong dari server (mis. admin menonaktifkan
-      // semua bidan sementara / DB disiram). Seed tetap lebih berguna daripada kosong.
-      if (midwives.isNotEmpty) {
-        await _cache(midwives);
-      } else {
+      // Admin sengaja kosongkan semua → hormati: kosongkan cache agar HP ikut kosong.
+      if (midwives.isEmpty) {
+        // Bedakan: kosong karena admin vs kosong karena DB awal. Jika local pernah ada
+        // dan server kirim 200 + updated_at baru, itu intent admin — cache jadi [].
+        if (remoteUpdatedAt != null) {
+          await _cache(midwives, updatedAt: remoteUpdatedAt);
+          return midwives;
+        }
         final local = await getLocal();
         if (local.isNotEmpty) return local;
+        return midwives;
       }
-      return midwives.isNotEmpty ? midwives : await getLocal();
+      await _cache(midwives, updatedAt: remoteUpdatedAt);
+      return midwives;
     } catch (e) {
       debugPrint('[MidwifeRepository.fetchRemote] $e');
       try {
@@ -88,10 +106,18 @@ class MidwifeRepository {
       try {
         final decoded = jsonDecode(cached) as List<dynamic>;
         if (decoded.isNotEmpty) return null;
+        // decoded kosong [] — bedakan racun vs intent admin (updated_at ada)
+        if (decoded.isEmpty) {
+          final updatedAt = prefs.getString(_updatedAtKey);
+          if (updatedAt != null && updatedAt.isNotEmpty) {
+            // Admin sengaja kosongkan (versioned) — jangan semai ulang
+            return null;
+          }
+        }
       } catch (_) {
         // cache corrupt / bukan list -> semai ulang di bawah
       }
-      // cache berisi "[]" (racun dari sync pertama saat DB kosong) -> semai ulang
+      // cache berisi "[]" tanpa versi (racun dari sync pertama saat DB kosong) -> semai ulang
     }
     try {
       final raw = await rootBundle
@@ -151,6 +177,25 @@ class MidwifeRepository {
     }
     try {
       final data = jsonDecode(raw) as List<dynamic>;
+      if (data.isEmpty) {
+        final updatedAt = prefs.getString(_updatedAtKey);
+        if (updatedAt != null && updatedAt.isNotEmpty) {
+          // Admin sengaja kosongkan (versioned) — tetap kosong, jangan fallback asset
+          return const [];
+        }
+        // Racun [] tanpa versi — fallback ke asset agar tidak kosong misterius
+        try {
+          final assetRaw = await rootBundle
+              .loadString(_seedAsset)
+              .timeout(const Duration(seconds: 2));
+          final assetData = jsonDecode(assetRaw) as List<dynamic>;
+          return assetData
+              .map((e) => Midwife.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } catch (_) {
+          return const [];
+        }
+      }
       return data
           .map((e) => Midwife.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -170,11 +215,14 @@ class MidwifeRepository {
     }
   }
 
-  Future<void> _cache(List<Midwife> midwives) async {
+  Future<void> _cache(List<Midwife> midwives, {String? updatedAt}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _cacheKey,
       jsonEncode(midwives.map((m) => m.toJson()).toList()),
     );
+    if (updatedAt != null) {
+      await prefs.setString(_updatedAtKey, updatedAt);
+    }
   }
 }
