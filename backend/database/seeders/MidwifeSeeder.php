@@ -9,33 +9,24 @@ class MidwifeSeeder extends Seeder
 {
     public function run(): void
     {
+        // 8 bidan = sama dengan VPS https://rotasi.my.id/midwives (offline bundle HP)
         $bidans = [
-            [
-                'name' => 'Bidan Sitti',
-                'role' => 'Bidan Koordinator',
-                'phone' => '6281234500001',
-                'alt_phone' => null,
-                'duty_hours' => '08:00-14:00',
-                'workdays' => ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
-                'photo_path' => null,
-                'is_active' => true,
-                'notes' => 'Koordinator program ROTASI.',
-            ],
-            [
-                'name' => 'Bidan Rahma',
-                'role' => 'Bidan Pelaksana',
-                'phone' => '6281234500002',
-                'alt_phone' => '6281234500003',
-                'duty_hours' => '14:00-20:00',
-                'workdays' => ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
-                'photo_path' => null,
-                'is_active' => true,
-                'notes' => null,
-            ],
+            ['name' => 'Dwi Luqsianti, A.Md.Keb', 'role' => 'Bidan', 'phone' => '081227088315'],
+            ['name' => 'Nurafni Oktavia, A.Md.Keb', 'role' => 'Bidan', 'phone' => '085298805432'],
+            ['name' => 'Mariama, A.Md.Keb', 'role' => 'Bidan', 'phone' => '085298130870'],
+            ['name' => 'Desi T. Tangdialla, A.Md.Keb', 'role' => 'Bidan', 'phone' => '082190463407'],
+            ['name' => 'Nurwana, A.Md.Keb', 'role' => 'Bidan', 'phone' => '081949982378'],
+            ['name' => 'Eka Purwari Handayani, A.Md.Keb', 'role' => 'Bidan', 'phone' => '085143606520'],
+            ['name' => 'Nurlinda, A.Md.Keb', 'role' => 'Bidan', 'phone' => '082271300683'],
+            ['name' => 'Zulpina, A.Md.Keb', 'role' => 'Bidan', 'phone' => '081243803846'],
         ];
 
         foreach ($bidans as $data) {
-            Midwife::updateOrCreate(['phone' => $data['phone']], $data);
+            Midwife::updateOrCreate(['phone' => $data['phone']], [
+                'name' => $data['name'],
+                'role' => $data['role'],
+                'is_active' => true,
+            ]);
         }
     }
 }

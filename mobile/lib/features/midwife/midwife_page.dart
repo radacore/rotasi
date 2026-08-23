@@ -34,10 +34,16 @@ class MidwifePage extends StatefulWidget {
 
 class _MidwifePageState extends State<MidwifePage> {
   late final MidwifeRepository _repository;
+  // Fallback 8 bidan = sama dengan VPS https://rotasi.my.id/midwives (offline-first)
   List<Midwife> _midwives = const [
-    Midwife(
-        id: 2, name: 'Nurafni Oktavia. A,Md.keb', role: 'Bidan', phone: '085298805432'),
-    Midwife(id: 1, name: 'Dwi Luasianti A.Md.keb', role: 'Bidan', phone: '081227088313'),
+    Midwife(id: 1, name: 'Dwi Luqsianti, A.Md.Keb', role: 'Bidan', phone: '081227088315'),
+    Midwife(id: 5, name: 'Nurafni Oktavia, A.Md.Keb', role: 'Bidan', phone: '085298805432'),
+    Midwife(id: 6, name: 'Mariama, A.Md.Keb', role: 'Bidan', phone: '085298130870'),
+    Midwife(id: 7, name: 'Desi T. Tangdialla, A.Md.Keb', role: 'Bidan', phone: '082190463407'),
+    Midwife(id: 8, name: 'Nurwana, A.Md.Keb', role: 'Bidan', phone: '081949982378'),
+    Midwife(id: 9, name: 'Eka Purwari Handayani, A.Md.Keb', role: 'Bidan', phone: '085143606520'),
+    Midwife(id: 10, name: 'Nurlinda, A.Md.Keb', role: 'Bidan', phone: '082271300683'),
+    Midwife(id: 11, name: 'Zulpina, A.Md.Keb', role: 'Bidan', phone: '081243803846'),
   ];
   bool _loading = false;
   // ignore: unused_field, field disimpan untuk diagnosa walau label Sumber di UI dihapus

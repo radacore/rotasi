@@ -1,14 +1,10 @@
 [
-  {
-    "id": 2,
-    "name": "Nurafni Oktavia. A,Md.keb",
-    "role": "Bidan",
-    "phone": "085298805432"
-  },
-  {
-    "id": 1,
-    "name": "Dwi Luasianti A.Md.keb",
-    "role": "Bidan",
-    "phone": "081227088313"
-  }
+  {"id": 1, "name": "Dwi Luqsianti, A.Md.Keb", "role": "Bidan", "phone": "081227088315"},
+  {"id": 5, "name": "Nurafni Oktavia, A.Md.Keb", "role": "Bidan", "phone": "085298805432"},
+  {"id": 6, "name": "Mariama, A.Md.Keb", "role": "Bidan", "phone": "085298130870"},
+  {"id": 7, "name": "Desi T. Tangdialla, A.Md.Keb", "role": "Bidan", "phone": "082190463407"},
+  {"id": 8, "name": "Nurwana, A.Md.Keb", "role": "Bidan", "phone": "081949982378"},
+  {"id": 9, "name": "Eka Purwari Handayani, A.Md.Keb", "role": "Bidan", "phone": "085143606520"},
+  {"id": 10, "name": "Nurlinda, A.Md.Keb", "role": "Bidan", "phone": "082271300683"},
+  {"id": 11, "name": "Zulpina, A.Md.Keb", "role": "Bidan", "phone": "081243803846"}
 ]

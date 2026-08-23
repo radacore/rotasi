@@ -73,11 +73,11 @@ void main() {
   test('getLocal tanpa cache -> fallback asset (anti hang spinner)', () async {
     final repo = MidwifeRepository(api: _FakeApi(500, '{}'));
     // getLocal fallback ke asset bila prefs belum ada, agar halaman
-    // tidak stuck spinner (fix hang di TECNO KM6).
+    // tidak stuck spinner (fix hang di TECNO KM6). Asset sekarang 8 bidan VPS.
     final local = await repo.getLocal();
     expect(local, isNotEmpty);
-    expect(local.length, 2);
-    expect(local.any((m) => m.phone == '081227088313'), isTrue);
+    expect(local.length, 8);
+    expect(local.any((m) => m.phone == '081227088315'), isTrue);
   });
 
   test('ensureSeeded mengisi cache dari asset bawaan', () async {
@@ -85,12 +85,12 @@ void main() {
     final seeded = await repo.ensureSeeded();
     expect(seeded, isNotNull);
     expect(seeded, isNotEmpty);
-    expect(seeded!.length, 2);
-    expect(seeded.any((m) => m.phone == '081227088313'), isTrue);
+    expect(seeded!.length, 8);
+    expect(seeded.any((m) => m.phone == '081227088315'), isTrue);
 
     final local = await repo.getLocal();
     expect(local, isNotEmpty);
-    expect(local.any((m) => m.phone == '081227088313'), isTrue);
+    expect(local.any((m) => m.phone == '081227088315'), isTrue);
   });
 
   test('ensureSeeded tidak menimpa cache yang sudah ada', () async {

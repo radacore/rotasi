@@ -752,6 +752,9 @@ void main() {
       MidwifeRepository repo, {
       Future<void> Function(String)? onLaunch,
     }) async {
+      tester.view.physicalSize = const Size(900, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           home: MidwifePage(
@@ -795,9 +798,10 @@ void main() {
       final repo = FakeMidwifeRepository(midwives: const []);
       await pumpMidwife(tester, repo);
 
-      // Fallback offline-first: daftar bawaan terbaru (sesuai web) tetap tampil bila belum pernah sinkron.
+      // Fallback offline-first: 8 bidan VPS tetap tampil bila belum pernah sinkron.
       expect(find.text('Belum ada daftar bidan'), findsNothing);
-      expect(find.text('Dwi Luasianti A.Md.keb'), findsOneWidget);
+      expect(find.text('Dwi Luqsianti, A.Md.Keb'), findsOneWidget);
+      expect(find.text('Zulpina, A.Md.Keb'), findsOneWidget);
     });
   });
 
