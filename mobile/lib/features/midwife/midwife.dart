@@ -28,6 +28,13 @@ class Midwife {
         'phone': phone,
       };
 
-  /// Nomor tanpa karakter non-digit untuk `wa.me`.
-  String get waNumber => phone.replaceAll(RegExp(r'[^0-9]'), '');
+  /// Nomor internasional untuk `wa.me` — normalisasi 0→62.
+  String get waNumber {
+    var d = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.isEmpty) return d;
+    if (d.startsWith('0')) return '62${d.substring(1)}';
+    if (d.startsWith('62')) return d;
+    if (d.startsWith('8')) return '62$d';
+    return d;
+  }
 }

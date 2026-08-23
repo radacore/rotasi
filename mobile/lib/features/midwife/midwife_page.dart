@@ -38,6 +38,7 @@ class _MidwifePageState extends State<MidwifePage> {
     Midwife(id: 9, name: 'Lusi', role: 'Bidan', phone: '081227088313'),
   ];
   bool _loading = false;
+  // ignore: unused_field, field disimpan untuk diagnosa walau label Sumber di UI dihapus
   String _source = 'fallback';
   String? _error;
 
@@ -101,18 +102,29 @@ class _MidwifePageState extends State<MidwifePage> {
     final patient = await PatientRepository().getLocal();
     final bp = await BpRepository().last();
     final name = patient?.name ?? 'ibu hamil';
+    final age = patient?.age;
+    final weeks = patient?.gestationalWeeks;
+    final risk = patient?.riskLevel.name ?? '';
+    final header = [
+      if (age != null) '$age th',
+      if (weeks != null) 'hamil $weeks mgg',
+    ].join(', ');
+    final who = header.isEmpty ? 'Saya $name' : 'Saya $name ($header)';
     if (bp == null) {
-      return 'Saya $name. Ingin konsultasi status kehamilan saya.';
+      final riskText = risk.isNotEmpty && risk != 'unknown' ? ' ($risk)' : '';
+      return '$who$riskText. Belum ada pengukuran tensi.\n'
+          'Ingin konsultasi kehamilan. Mohon arahannya.';
     }
     final date = DateFormat('dd MMM yyyy').format(bp.measuredAt.toLocal());
-    return 'Saya $name. Tekanan darah terakhir ($date) '
-        '${bp.status.label} (${bp.avgSystolic}/${bp.avgDiastolic} mmHg). '
-        'Mohon arahannya.';
+    final riskText = risk.isNotEmpty && risk != 'unknown' ? ' Risiko $risk.' : '';
+    return '$who. Tensi terakhir $date: '
+        '${bp.avgSystolic}/${bp.avgDiastolic} mmHg (${bp.status.label}).'
+        '$riskText\nMohon arahan apakah perlu kontrol?';
   }
 
   Future<void> _chat(Midwife midwife) async {
     final summary = await _buildSummary();
-    final message = 'Halo Bidan ${midwife.name}, $summary';
+    final message = 'Halo Bidan ${midwife.name},\n$summary';
     final uri = Uri.parse('https://wa.me/${midwife.waNumber}')
         .replace(queryParameters: {'text': message});
     try {
@@ -148,18 +160,9 @@ class _MidwifePageState extends State<MidwifePage> {
                       margin: const EdgeInsets.only(bottom: 12),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Text('Diagnosa: $_error\nsumber:$_source',
+                        child: Text('Diagnosa: $_error',
                             style: const TextStyle(fontSize: 12)),
                       ),
-                    )
-                  else if (_source.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('Sumber: $_source',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: AppColors.textSecondary)),
                     ),
                   Card(
                     margin: EdgeInsets.zero,
@@ -245,25 +248,58 @@ class _MidwifeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.zero,
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: AppColors.skyLight,
-          child: const Icon(Icons.medical_services_outlined,
-              color: AppColors.primary),
-        ),
-        title: Text(
-          midwife.name,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: midwife.role.isEmpty
-            ? null
-            : Text(midwife.role),
-        trailing: FilledButton.tonalIcon(
-          onPressed: onChat,
-          icon: const Icon(Icons.chat, size: 18),
-          label: const Text('Chat'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.skyLight,
+              child: Icon(Icons.medical_services_outlined,
+                  color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    midwife.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (midwife.role.isNotEmpty)
+                    Text(
+                      midwife.role,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            height: 1.2,
+                          ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonalIcon(
+              onPressed: onChat,
+              icon: const Icon(Icons.chat, size: 16),
+              label: const Text('Chat', style: TextStyle(fontSize: 13)),
+              style: FilledButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
         ),
       ),
     );

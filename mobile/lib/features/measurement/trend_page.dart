@@ -50,7 +50,7 @@ class _TrendPageState extends State<TrendPage> {
   late final BpRepository _repository;
   List<BpMeasurement> _data = const [];
   bool _loaded = false;
-  int _rangeDays = 14;
+  static const int _kMaxDays = 28;
 
   @override
   void initState() {
@@ -95,8 +95,8 @@ class _TrendPageState extends State<TrendPage> {
     }
     final days = byDay.values.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    if (days.length > _rangeDays) {
-      return days.sublist(days.length - _rangeDays);
+    if (days.length > _kMaxDays) {
+      return days.sublist(days.length - _kMaxDays);
     }
     return days;
   }
@@ -179,18 +179,6 @@ class _TrendPageState extends State<TrendPage> {
       ),
       const SizedBox(height: 12),
       _SummaryCard(days: days),
-      const SizedBox(height: 12),
-      SegmentedButton<int>(
-        segments: const [
-          ButtonSegment(value: 7, label: Text('7 hari')),
-          ButtonSegment(value: 14, label: Text('14 hari')),
-          ButtonSegment(value: 28, label: Text('28 hari')),
-        ],
-        selected: {_rangeDays},
-        showSelectedIcon: false,
-        onSelectionChanged: (selection) =>
-            setState(() => _rangeDays = selection.first),
-      ),
       const SizedBox(height: 12),
       _DistributionCard(counts: counts, total: days.length),
       const SizedBox(height: 16),

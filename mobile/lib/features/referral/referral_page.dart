@@ -35,6 +35,7 @@ class _ReferralPageState extends State<ReferralPage> {
     ),
   );
   bool _loading = false;
+  // ignore: unused_field, disimpan untuk debug walau label UI dihapus
   String _source = 'fallback';
   String? _error;
 
@@ -125,18 +126,9 @@ class _ReferralPageState extends State<ReferralPage> {
                       margin: const EdgeInsets.only(bottom: 12),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: Text('Diagnosa: $_error\nsumber:$_source',
+                        child: Text('Diagnosa: $_error',
                             style: const TextStyle(fontSize: 12)),
                       ),
-                    )
-                  else if (_source.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('Sumber: $_source',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: AppColors.textSecondary)),
                     ),
                   const _DisclaimerCard(),
                   const SizedBox(height: 12),
@@ -166,17 +158,22 @@ class _DisclaimerCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       color: AppColors.sand,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Icon(Icons.health_and_safety_outlined, color: AppColors.sun),
-            SizedBox(width: 12),
+          children: [
+            const Icon(Icons.health_and_safety_outlined,
+                color: AppColors.sun, size: 20),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Aplikasi pendamping, bukan pengganti pemeriksaan ANC. '
-                'Segera ke faskes bila ada keluhan atau hasil yang '
-                'mencurigakan.',
+                'Pendamping ANC, bukan pengganti pemeriksaan. '
+                'Segera ke faskes bila ada keluhan.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: AppColors.textPrimary,
+                    ),
               ),
             ),
           ],
@@ -237,39 +234,36 @@ class _ReferralCriteria extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Kapan harus segera ke faskes',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             _CriteriaRow(
               icon: Icons.monitor_heart_outlined,
               color: AppColors.crisis,
-              text:
-                  'Tekanan darah ${colorLabel.isEmpty ? 'tinggi' : colorLabel} '
-                  'berulang pada pemeriksaan berikutnya',
+              text: colorLabel.isEmpty
+                  ? 'Tensi tinggi berulang'
+                  : 'Tensi $colorLabel berulang',
             ),
             _CriteriaRow(
               icon: Icons.warning_amber_outlined,
               color: AppColors.crisis,
-              text:
-                  rules.symptomCheckTrigger
-                  ? 'Ada minimal satu tanda bahaya pada cek gejala harian'
-                  : 'Ada tanda bahaya yang menetap',
+              text: rules.symptomCheckTrigger
+                  ? 'Ada tanda bahaya (cek gejala)'
+                  : 'Tanda bahaya menetap',
             ),
             _CriteriaRow(
               icon: Icons.child_care_outlined,
               color: AppColors.crisis,
-              text:
-                  'Gerakan janin kurang aktif '
-                  '(${rules.kickThreshold} gerakan atau kurang dalam 30 menit)',
+              text: 'Gerakan janin ≤${rules.kickThreshold}/30 menit',
             ),
           ],
         ),
@@ -292,14 +286,23 @@ class _CriteriaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 22),
+          Icon(icon, color: color, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: AppColors.textPrimary,
+                  ),
+            ),
           ),
         ],
       ),
@@ -319,50 +322,95 @@ class _ContactCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Kontak darurat',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
             ),
-            const SizedBox(height: 8),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.local_hospital_outlined,
-                  color: AppColors.crisis),
-              title: const Text('Darurat / Ambulans'),
-              subtitle: hasEmergency
-                  ? Text(settings.emergencyPhone)
-                  : Text(
-                      'Belum diatur pengelola',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.textSecondary),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.local_hospital_outlined,
+                    color: AppColors.crisis, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Darurat / Ambulans',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(
+                        hasEmergency
+                            ? settings.emergencyPhone
+                            : 'Belum diatur pengelola',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasEmergency) ...[
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: () => onCall(settings.emergencyPhone),
+                    icon: const Icon(Icons.call, size: 16),
+                    label: const Text('Panggil',
+                        style: TextStyle(fontSize: 13)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-              trailing: hasEmergency
-                  ? FilledButton.icon(
-                      onPressed: () => onCall(settings.emergencyPhone),
-                      icon: const Icon(Icons.call, size: 18),
-                      label: const Text('Panggil'),
-                    )
-                  : null,
+                  ),
+                ],
+              ],
             ),
-            const Divider(height: 1),
+            const Divider(height: 16),
             if (settings.puskesmasName.isNotEmpty)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.local_hospital_outlined,
-                    color: AppColors.primary),
-                title: Text(settings.puskesmasName),
-                subtitle: settings.puskesmasAddress.isEmpty
-                    ? null
-                    : Text(settings.puskesmasAddress),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.local_hospital_outlined,
+                      color: AppColors.primary, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          settings.puskesmasName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        if (settings.puskesmasAddress.isNotEmpty)
+                          Text(
+                            settings.puskesmasAddress,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                      height: 1.3,
+                                    ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
           ],
         ),

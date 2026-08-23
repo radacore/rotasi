@@ -21,6 +21,17 @@ void main() {
       expect(m.waNumber, '628123456789');
     });
 
+    test('waNumber normalisasi 0 awalan ke 62', () {
+      expect(const Midwife(id: 1, name: '', role: '', phone: '085298805432').waNumber,
+          '6285298805432');
+      expect(const Midwife(id: 1, name: '', role: '', phone: '081227088313').waNumber,
+          '6281227088313');
+      expect(const Midwife(id: 1, name: '', role: '', phone: '85298805432').waNumber,
+          '6285298805432');
+      expect(const Midwife(id: 1, name: '', role: '', phone: '6285298805432').waNumber,
+          '6285298805432');
+    });
+
     test('toJson/fromJson roundtrip', () {
       const m = Midwife(id: 2, name: 'Bidan Sari', role: 'Bidan', phone: '0811');
       final restored = Midwife.fromJson(m.toJson());

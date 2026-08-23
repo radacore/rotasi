@@ -111,11 +111,11 @@ Menu **Tren** menampilkan perkembangan tekanan darah dari data tersimpan:
 
 - **Ringkasan**: nilai terakhir, kategori status, dan arah perubahan (Naik/
   Turun/Sama) dibanding hari sebelumnya.
-- **Filter rentang**: pilih tampilan **7 hari**, **14 hari**, atau **28 hari**.
+- **Rentang**: menampilkan 28 hari terakhir otomatis (tanpa filter).
 - **Distribusi Status**: jumlah hari per kategori (Normal, Waspada, Berisiko,
   Bahaya).
-- **Grafik Sistolik** dan **Grafik Diastolik**: garis Pagi (biru) dan Sore
-  (oranye) dengan latar berwarna sesuai ambang (hijau = normal, dst).
+- **Grafik Sistolik** dan **Grafik Diastolik**: garis harian dengan latar
+  berwarna sesuai ambang (hijau = normal, dst).
 - **Interpretasi otomatis**: ringkasan kecenderungan (naik/turun/stabil) dan
   peringatan bila ada hari dengan kategori Bahaya.
 

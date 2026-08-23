@@ -711,19 +711,19 @@ void main() {
       await pumpReferral(tester, repo, (url) async => calls.add(url));
 
       expect(
-        find.textContaining('bukan pengganti pemeriksaan ANC'),
+        find.textContaining('Pendamping ANC'),
         findsOneWidget,
       );
       expect(find.text('Kapan harus segera ke faskes'), findsOneWidget);
       expect(
-        find.textContaining('Tekanan darah oranye/merah berulang'),
+        find.textContaining('oranye/merah berulang'),
         findsOneWidget,
       );
       expect(
-        find.textContaining('minimal satu tanda bahaya'),
+        find.textContaining('tanda bahaya'),
         findsOneWidget,
       );
-      expect(find.textContaining('Gerakan janin kurang aktif'), findsOneWidget);
+      expect(find.textContaining('Gerakan janin'), findsOneWidget);
       expect(find.text('119'), findsOneWidget);
       expect(find.text('Puskesmas Sehat'), findsOneWidget);
 
@@ -782,7 +782,7 @@ void main() {
       final uri = Uri.parse(calls.first);
       expect(uri.scheme, 'https');
       expect(uri.host, 'wa.me');
-      expect(uri.pathSegments, ['08123']);
+      expect(uri.pathSegments, ['628123']);
       expect(uri.queryParameters['text'],
           contains('Halo Bidan Bidan Rini'));
       expect(uri.queryParameters['text'], contains('Siti'));
