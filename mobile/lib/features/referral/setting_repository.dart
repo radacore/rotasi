@@ -30,7 +30,29 @@ class SettingRepository {
       await DeviceRegistrar(_api)
           .ensureRegistered()
           .timeout(const Duration(seconds: 12));
-      final res = await _api.get(ApiEndpoints.settings);
+      // Kirim since agar server bisa 304 (hemat kuota) — panduan rujukan ikut versioning
+      String? since;
+      try {
+        since = (await SharedPreferences.getInstance()).getString(_cacheKey) != null
+            ? (await getLocal())?.updatedAt?.toIso8601String()
+            : null;
+      } catch (_) {}
+      // Fallback: ambil langsung dari cache json bila getLocal berat
+      if (since == null) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final raw = prefs.getString(_cacheKey);
+          if (raw != null) {
+            final m = jsonDecode(raw) as Map<String, dynamic>;
+            since = m['updated_at'] as String?;
+          }
+        } catch (_) {}
+      }
+      final path = since == null || since.isEmpty
+          ? ApiEndpoints.settings
+          : '${ApiEndpoints.settings}?since=${Uri.encodeComponent(since)}';
+      final res = await _api.get(path);
+      if (res.statusCode == 304) return await getLocal();
       if (res.statusCode >= 300) {
         return await getLocal();
       }

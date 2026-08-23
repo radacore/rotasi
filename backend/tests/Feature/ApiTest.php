@@ -132,7 +132,7 @@ class ApiTest extends TestCase
             ->assertJsonPath('data.is_active', false);
 
         $this->withToken($token)->deleteJson("/api/admin/booklet-releases/{$id}")->assertOk();
-        $this->assertNull(BookletRelease::find($id));
+        $this->assertSoftDeleted('booklet_releases', ['id' => $id]);
     }
 
     public function test_multiple_active_booklets_are_all_returned(): void

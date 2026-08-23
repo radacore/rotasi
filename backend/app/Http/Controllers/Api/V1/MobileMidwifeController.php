@@ -12,16 +12,25 @@ class MobileMidwifeController extends Controller
         $since = $request->query('since');
         $midwives = Midwife::active()->get(['id', 'name', 'role', 'phone', 'updated_at']);
         $updatedAt = $midwives->max('updated_at');
-        // Bila semua nonaktif, active kosong → updated_at null. Pakai global max
-        // agar HP tetap dapat sinyal versi dan mengosongkan cache bila admin sengaja kosongkan.
-        $effectiveUpdatedAt = $updatedAt ?? Midwife::max('updated_at');
+        // Soft delete: baris terhapus tetap bump deleted_at sehingga max mundur.
+        // Pakai withTrashed max agar hapus tetap memaju effectiveUpdatedAt dan 304 tidak palsu.
+        $effectiveUpdatedAt = $updatedAt
+            ?? Midwife::withTrashed()->max('updated_at')
+            ?? Midwife::withTrashed()->max('deleted_at');
 
-        // Conditional GET: bila client sudah punya versi terbaru, kembalikan 304
+        // Conditional GET: bila client sudah punya versi terbaru, kembalikan 304.
+        // Guard tambahan: bila ada soft-deleted setelah `since`, jangan 304
+        // walau active max mundur — HP perlu list baru (hapus).
         if ($since !== null && $since !== '' && $effectiveUpdatedAt !== null) {
             try {
                 $sinceTime = \Carbon\Carbon::parse($since);
                 if ($effectiveUpdatedAt->lte($sinceTime)) {
-                    return response()->json(null, 304);
+                    $recentlyDeleted = Midwife::onlyTrashed()
+                        ->where('deleted_at', '>', $sinceTime)
+                        ->exists();
+                    if (! $recentlyDeleted) {
+                        return response()->json(null, 304);
+                    }
                 }
             } catch (\Throwable) {
                 // abaikan since tidak valid — kembalikan penuh

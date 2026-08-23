@@ -14,14 +14,21 @@ class MobileBookletController extends Controller
             ->get(['id', 'title', 'version', 'file_url', 'file_size', 'uploaded_at', 'updated_at']);
 
         $updatedAt = $releases->max('updated_at');
-        $effectiveUpdatedAt = $updatedAt ?? BookletRelease::max('updated_at');
+        $effectiveUpdatedAt = $updatedAt
+            ?? BookletRelease::withTrashed()->max('updated_at')
+            ?? BookletRelease::withTrashed()->max('deleted_at');
 
         $since = $request->query('since');
         if ($since !== null && $since !== '' && $effectiveUpdatedAt !== null) {
             try {
                 $sinceTime = \Carbon\Carbon::parse($since);
                 if ($effectiveUpdatedAt->lte($sinceTime)) {
-                    return response()->json(null, 304);
+                    $recentlyDeleted = BookletRelease::onlyTrashed()
+                        ->where('deleted_at', '>', $sinceTime)
+                        ->exists();
+                    if (! $recentlyDeleted) {
+                        return response()->json(null, 304);
+                    }
                 }
             } catch (\Throwable) {
                 // abaikan since tidak valid — kembalikan penuh

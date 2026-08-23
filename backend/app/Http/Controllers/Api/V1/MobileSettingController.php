@@ -26,6 +26,21 @@ class MobileSettingController extends Controller
         $kickThreshold = (int) $get('kick_threshold', 3);
         if ($kickThreshold < 1) $kickThreshold = 3;
 
+        // Panduan rujukan ikut settings; `?since` + 304 hemat kuota.
+        // `updated_at` dikirim Iso8601 agar Carbon::parse di client/server konsisten.
+        $since = request()->query('since');
+        $effectiveUpdatedAt = Setting::max('updated_at');
+        if ($since !== null && $since !== '' && $effectiveUpdatedAt !== null) {
+            try {
+                $sinceTime = \Carbon\Carbon::parse($since);
+                if ($effectiveUpdatedAt->lte($sinceTime)) {
+                    return response()->json(null, 304);
+                }
+            } catch (\Throwable) {
+                // abaikan since tidak valid
+            }
+        }
+
         return $this->ok([
             'app_name' => config('app.name'),
             'emergency_phone' => $get('emergency_phone', ''),
@@ -37,7 +52,7 @@ class MobileSettingController extends Controller
                 'symptom_check_trigger' => $symptomTrigger,
                 'kick_threshold' => $kickThreshold,
             ],
-            'updated_at' => Setting::max('updated_at'),
+            'updated_at' => $effectiveUpdatedAt?->toIso8601String(),
         ], 'Pengaturan global');
     }
 }

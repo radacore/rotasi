@@ -79,7 +79,7 @@ class WebAdminTest extends TestCase
         $this->assertDatabaseHas('booklet_releases', ['id' => $booklet->id, 'is_active' => false]);
 
         $this->delete("/booklet/{$booklet->id}")->assertRedirect('/booklet');
-        $this->assertDatabaseMissing('booklet_releases', ['id' => $booklet->id]);
+        $this->assertSoftDeleted('booklet_releases', ['id' => $booklet->id]);
     }
 
     public function test_booklet_upload_fails_without_silent_broken_record(): void
@@ -183,7 +183,7 @@ class WebAdminTest extends TestCase
         Storage::disk('media')->assertMissing($oldPath);
 
         $this->delete("/midwives/{$midwife->id}")->assertRedirect('/midwives');
-        $this->assertDatabaseMissing('midwives', ['name' => 'Bidan Web']);
+        $this->assertSoftDeleted('midwives', ['name' => 'Bidan Web']);
     }
 
     public function test_apk_upload_stores_to_media_disk_and_qr_routes(): void

@@ -129,7 +129,7 @@ class ApiCoverageTest extends TestCase
             'name' => 'Bidan API', 'phone' => '6281200000099', 'is_active' => false,
         ])->assertOk();
         $this->withToken($token)->deleteJson("/api/admin/midwives/{$id}")->assertOk();
-        $this->assertDatabaseMissing('midwives', ['id' => $id]);
+        $this->assertSoftDeleted('midwives', ['id' => $id]);
     }
 
     public function test_admin_settings_api(): void
