@@ -7,6 +7,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/api/api_client.dart';
 import '../../core/api/device_registrar.dart';
 import '../../core/constants.dart';
@@ -29,6 +32,7 @@ class BookletRepository {
             directoryProvider ?? _defaultDocumentsDirectory;
 
   static const _seedAsset = 'assets/booklets/rotasi_edukasi_1.pdf';
+  static const _updatedAtKey = 'booklets_updated_at';
 
   final ApiClient _api;
   final http.Client _http;
@@ -92,17 +96,49 @@ class BookletRepository {
   ///
   /// `needsDownload` berisi id booklet yang versi server-nya berubah atau file
   /// lokal belum ada. Saat offline (atau tak ada booklet aktif), memakai
-  /// data lokal yang ada.
+  /// data lokal yang ada. Versi baru: pakai `?since=updated_at` + `304`
+  /// hemat kuota; `updated_at` disimpan di prefs.
   Future<({List<Booklet> booklets, Set<int> needsDownload})> fetchAll() async {
     try {
       await DeviceRegistrar(_api).ensureRegistered();
-      final res = await _api.get(ApiEndpoints.booklet);
+      String? since;
+      try {
+        since = (await SharedPreferences.getInstance()).getString(_updatedAtKey);
+      } catch (_) {}
+      final path = since == null || since.isEmpty
+          ? ApiEndpoints.booklet
+          : '${ApiEndpoints.booklet}?since=${Uri.encodeComponent(since)}';
+      final res = await _api.get(path);
+      if (res.statusCode == 304) {
+        final local = await getAllLocal();
+        return (booklets: local, needsDownload: <int>{});
+      }
+      if (res.statusCode == 404) {
+        // 404 bisa membawa updated_at (backend versioned) — simpan agar tidak poll boros
+        try {
+          final body404 = jsonDecode(res.body) as Map<String, dynamic>;
+          final u = body404['updated_at'] as String?;
+          if (u != null && u.isNotEmpty) {
+            try {
+              (await SharedPreferences.getInstance()).setString(_updatedAtKey, u);
+            } catch (_) {}
+          }
+        } catch (_) {}
+        final local = await getAllLocal();
+        return (booklets: local, needsDownload: <int>{});
+      }
       if (res.statusCode >= 300) {
         final local = await getAllLocal();
         return (booklets: local, needsDownload: <int>{});
       }
-      final data =
-          (jsonDecode(res.body) as Map<String, dynamic>)['data'] as List<dynamic>;
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final remoteUpdatedAt = body['updated_at'] as String?;
+      if (remoteUpdatedAt != null && remoteUpdatedAt.isNotEmpty) {
+        try {
+          (await SharedPreferences.getInstance()).setString(_updatedAtKey, remoteUpdatedAt);
+        } catch (_) {}
+      }
+      final data = (body['data'] as List<dynamic>? ?? const []);
       if (data.isEmpty) {
         final local = await getAllLocal();
         return (booklets: local, needsDownload: <int>{});
@@ -133,13 +169,59 @@ class BookletRepository {
               )
             : remote;
         await saveMeta(merged);
+        // Hapus file versi lama yang orphan bila versi/file berubah
+        if (!sameFile && local?.localPath != null) {
+          try {
+            final old = File(local!.localPath!);
+            if (await old.exists() && old.path != merged.localPath) {
+              await old.delete();
+            }
+          } catch (_) {}
+        }
         booklets.add(merged);
         if (!(sameFile && fileExists)) needsDownload.add(remote.id);
+      }
+      // Hapus booklet yang sudah tidak aktif di server (opsional, aman: tetap ada file lama tapi tidak ditampilkan)
+      final remoteIds = remotes.map((e) => e.id).toSet();
+      for (final id in locals.keys) {
+        if (!remoteIds.contains(id) && locals[id]!.fileUrl != _seedAsset) {
+          try {
+            final db = await AppDatabase.instance;
+            await db.delete('booklets', where: 'id = ?', whereArgs: [id]);
+          } catch (_) {}
+        }
       }
       return (booklets: booklets, needsDownload: needsDownload);
     } catch (_) {
       final local = await getAllLocal();
       return (booklets: local, needsDownload: <int>{});
+    }
+  }
+
+  // Dihapus: offline/404/data-empty tidak boleh memicu auto-download berulang.
+
+  bool _refreshing = false;
+
+  /// Tarik metadata + unduh file yang dibutuhkan secara senyap (untuk AutoSync).
+  ///
+  /// Dipanggil dari [SyncService.pullRemoteConfig] saat online/resume. Tidak
+  /// throw — gagal unduh akan dicoba lagi periode berikutnya. File yang sudah
+  /// ada tidak diunduh ulang.
+  Future<void> refreshInBackground() async {
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      final result = await fetchAll().timeout(const Duration(seconds: 15));
+      for (final id in result.needsDownload) {
+        try {
+          final meta = result.booklets.firstWhere((b) => b.id == id);
+          await download(meta).timeout(const Duration(seconds: 90));
+        } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('[BookletRepository.refreshInBackground] $e');
+    } finally {
+      _refreshing = false;
     }
   }
 

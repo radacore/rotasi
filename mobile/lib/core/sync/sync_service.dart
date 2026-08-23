@@ -4,6 +4,7 @@ import '../../features/kick_count/kick_count.dart';
 import '../../features/kick_count/kick_repository.dart';
 import '../../features/measurement/bp_measurement.dart';
 import '../../features/measurement/bp_repository.dart';
+import '../../features/education/booklet_repository.dart';
 import '../../features/midwife/midwife_repository.dart';
 import '../../features/referral/setting_repository.dart';
 import '../../features/registration/patient.dart';
@@ -37,13 +38,15 @@ class SyncService {
     AncRepository? anc,
     SettingRepository? settings,
     MidwifeRepository? midwives,
+    BookletRepository? booklets,
   })  : _patients = patients ?? PatientRepository(),
         _bp = bp ?? BpRepository(),
         _symptoms = symptoms ?? SymptomRepository(),
         _kicks = kicks ?? KickRepository(),
         _anc = anc ?? AncRepository(),
         _settings = settings ?? SettingRepository(),
-        _midwives = midwives ?? MidwifeRepository();
+        _midwives = midwives ?? MidwifeRepository(),
+        _booklets = booklets ?? BookletRepository();
 
   final PatientRepository _patients;
   final BpRepository _bp;
@@ -52,6 +55,7 @@ class SyncService {
   final AncRepository _anc;
   final SettingRepository _settings;
   final MidwifeRepository _midwives;
+  final BookletRepository _booklets;
 
   Future<SyncSummary> syncAll() async {
     var sent = 0;
@@ -100,11 +104,13 @@ class SyncService {
   ///
   /// Dipanggil setelah `syncAll` saat online dan saat app resume — data tetap
   /// tampil offline, perubahan di web akan otomatis ter-cache dan terlihat di
-  /// Panduan Rujukan / Bidan tanpa buka halaman tersebut.
+  /// Panduan Rujukan / Bidan / Pustaka Edukasi tanpa buka halaman tersebut.
+  /// Pustaka diunduh senyap (auto-download) bila versi/file berubah.
   Future<void> pullRemoteConfig() async {
     await Future.wait([
       _settings.refreshInBackground(),
       _midwives.refreshInBackground(),
+      _booklets.refreshInBackground(),
     ]);
   }
 }
