@@ -54,11 +54,20 @@ class AutoSync {
             r == ConnectivityResult.ethernet,
       );
 
+  /// Dipanggil saat app kembali foreground — segarkan konfigurasi rujukan.
+  Future<void> onResume() async {
+    try {
+      final results = await _connectivity.checkConnectivity();
+      if (_online(results)) await _syncSilently();
+    } catch (_) {}
+  }
+
   Future<void> _syncSilently() async {
     if (_syncing) return;
     _syncing = true;
     try {
       await _sync.syncAll();
+      await _sync.pullRemoteConfig();
     } catch (_) {
       // Offline/error: data tetap tersimpan, dicoba lagi berikutnya.
     } finally {

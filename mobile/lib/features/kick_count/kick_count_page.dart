@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'kick_count.dart';
@@ -8,10 +9,7 @@ import 'kick_repository.dart';
 
 enum _Phase { idle, counting, finished }
 
-/// Hitung gerakan janin (FR-07).
-///
-/// Pengamatan 30 menit; ketukan dihitung via tombol besar. Status aktif
-/// bila minimal 3 gerakan. Timer berjalan penuh secara lokal.
+/// Hitung gerakan janin (FR-07) + tab Riwayat offline-first.
 class KickCountPage extends StatefulWidget {
   const KickCountPage({super.key, this.repository, this.patientUuid});
 
@@ -32,18 +30,30 @@ class _KickCountPageState extends State<KickCountPage> {
   KickCount? _result;
   Timer? _timer;
   String? _patientUuid;
+  List<KickCount> _history = const [];
+  bool _loadingHistory = true;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository ?? KickRepository();
     _loadPatient();
+    _loadHistory();
   }
 
   Future<void> _loadPatient() async {
     final patient = await _repository.localPatient();
     if (!mounted) return;
     setState(() => _patientUuid = patient?.uuid);
+  }
+
+  Future<void> _loadHistory() async {
+    final h = await _repository.history(limit: 90);
+    if (!mounted) return;
+    setState(() {
+      _history = h;
+      _loadingHistory = false;
+    });
   }
 
   @override
@@ -86,7 +96,6 @@ class _KickCountPageState extends State<KickCountPage> {
         Duration(seconds: _totalSeconds - _remaining),
       ),
     );
-    // Rekonstruksi dengan jumlah ketukan agar konsisten.
     final completed = KickCount.fromMap({
       ...result.toMap(),
       'kick_count': _kicks,
@@ -102,6 +111,7 @@ class _KickCountPageState extends State<KickCountPage> {
     final result = _result!;
     await _repository.saveLocal(result);
     final synced = await _repository.sync(result);
+    await _loadHistory();
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -118,28 +128,180 @@ class _KickCountPageState extends State<KickCountPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Hitung Gerakan Janin')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _InfoCard(),
-          const SizedBox(height: 12),
-          switch (_phase) {
-            _Phase.idle => _IdleView(onStart: _start),
-            _Phase.counting => _CountingView(
-                countdown: _countdown,
-                kicks: _kicks,
-                onKick: _tapKick,
-                onFinish: _finish,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Hitung Gerakan Janin'),
+          bottom: const TabBar(
+            labelColor: AppColors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: AppColors.white,
+            indicatorWeight: 3,
+            labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            unselectedLabelStyle:
+                TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+            tabs: [
+              Tab(text: 'Hitung'),
+              Tab(text: 'Riwayat'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            RefreshIndicator(
+              onRefresh: _loadHistory,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _InfoCard(),
+                  const SizedBox(height: 12),
+                  switch (_phase) {
+                    _Phase.idle => _IdleView(onStart: _start),
+                    _Phase.counting => _CountingView(
+                        countdown: _countdown,
+                        kicks: _kicks,
+                        onKick: _tapKick,
+                        onFinish: _finish,
+                      ),
+                    _Phase.finished => _ResultView(
+                        result: _result!,
+                        onSave: _save,
+                        onRestart: () => setState(() => _phase = _Phase.idle),
+                      ),
+                  },
+                ],
               ),
-            _Phase.finished => _ResultView(
-                result: _result!,
-                onSave: _save,
-                onRestart: () => setState(() => _phase = _Phase.idle),
+            ),
+            RefreshIndicator(
+              onRefresh: _loadHistory,
+              child: _buildHistory(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistory(BuildContext context) {
+    if (_loadingHistory) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_history.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.history, size: 48, color: AppColors.textSecondary),
+              SizedBox(height: 8),
+              Text('Belum ada riwayat gerakan'),
+              SizedBox(height: 4),
+              Text(
+                'Hasil hitung 30 menit akan tampil di sini (offline).',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
               ),
-          },
-        ],
+            ],
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: _history.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final k = _history[i];
+        return _KickHistoryTile(kick: k);
+      },
+    );
+  }
+}
+
+class _KickHistoryTile extends StatelessWidget {
+  const _KickHistoryTile({required this.kick});
+
+  final KickCount kick;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = DateFormat('dd MMM yyyy • HH:mm').format(kick.startedAt.toLocal());
+    final color = kick.isActive ? AppColors.normal : AppColors.stage1;
+    final label = kick.isActive ? 'Aktif' : 'Kurang aktif';
+    final icon = kick.isActive ? Icons.check_circle : Icons.info;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    date,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 12, color: color),
+                      const SizedBox(width: 4),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${kick.kickCount} gerakan • 30 menit',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
+            ),
+            if (kick.synced)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Tersinkron',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                      ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

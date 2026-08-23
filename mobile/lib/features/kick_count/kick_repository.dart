@@ -38,6 +38,17 @@ class KickRepository {
     return KickCount.fromMap(rows.first);
   }
 
+  /// Riwayat sesi urut terbaru di atas (offline-first).
+  Future<List<KickCount>> history({int? limit}) async {
+    final db = await AppDatabase.instance;
+    final rows = await db.query(
+      'kick_counts',
+      orderBy: 'started_at DESC',
+      limit: limit,
+    );
+    return rows.map(KickCount.fromMap).toList();
+  }
+
   /// Sesi yang belum tersinkron (FR-13).
   Future<List<KickCount>> unsynced() async {
     final db = await AppDatabase.instance;

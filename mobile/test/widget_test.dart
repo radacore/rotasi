@@ -38,6 +38,7 @@ import 'package:rotasi_mobile/features/registration/patient_repository.dart';
 import 'package:rotasi_mobile/features/registration/registration_page.dart';
 import 'package:rotasi_mobile/features/home/home_shell.dart';
 import 'package:rotasi_mobile/features/home/home_page.dart';
+import 'package:rotasi_mobile/features/home/more_page.dart';
 
 class FakePatientRepository extends PatientRepository {
   FakePatientRepository({this.initial, this.syncResult = true});
@@ -412,7 +413,9 @@ void main() {
       expect(repo.stored!.headache, true);
       expect(repo.stored!.shortnessOfBreath, true);
       expect(repo.stored!.blurredVision, false);
-      expect(find.text('Cek Gejala Harian'), findsNothing);
+      // Sekarang stay di page + pindah ke Riwayat, tidak pop
+      expect(find.text('Cek Gejala Harian'), findsOneWidget);
+      expect(find.text('Riwayat'), findsOneWidget);
     });
   });
 
@@ -439,11 +442,13 @@ void main() {
 
       // 3 ketukan -> aktif.
       for (var i = 0; i < 3; i++) {
+        await tester.ensureVisible(find.text('Ketuk saat bayi bergerak'));
         await tester.tap(find.text('Ketuk saat bayi bergerak'));
         await tester.pump();
       }
       expect(find.text('Gerakan: 3'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Selesai Pengamatan'));
       await tester.tap(find.text('Selesai Pengamatan'));
       await tester.pumpAndSettle();
 
@@ -467,9 +472,11 @@ void main() {
       await tester.tap(find.text('Mulai Hitung'));
       await tester.pump();
 
+      await tester.ensureVisible(find.text('Ketuk saat bayi bergerak'));
       await tester.tap(find.text('Ketuk saat bayi bergerak'));
       await tester.pump();
 
+      await tester.ensureVisible(find.text('Selesai Pengamatan'));
       await tester.tap(find.text('Selesai Pengamatan'));
       await tester.pumpAndSettle();
 
@@ -523,11 +530,8 @@ void main() {
 
       expect(find.text('3 dari 10 pemeriksaan ditandai'), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.text('Simpan Ceklis'),
-        200,
-        scrollable: find.byType(Scrollable),
-      );
+      await tester.ensureVisible(find.text('Simpan Ceklis'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Simpan Ceklis'));
       await tester.pumpAndSettle();
 
@@ -535,7 +539,8 @@ void main() {
       expect(repo.syncCount, 1);
       expect(repo.stored, isNotNull);
       expect(repo.stored!.items, ['t1', 't3', 't5']);
-      expect(find.text('Ceklis 10T ANC'), findsNothing);
+      expect(find.text('Ceklis 10T ANC'), findsOneWidget);
+      expect(find.text('Riwayat'), findsOneWidget);
     });
 
     testWidgets('kunjungan yang sudah ada dimuat ulang', (tester) async {
@@ -550,11 +555,8 @@ void main() {
 
       expect(find.text('2 dari 10 pemeriksaan ditandai'), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.text('Simpan Ceklis'),
-        200,
-        scrollable: find.byType(Scrollable),
-      );
+      await tester.ensureVisible(find.text('Simpan Ceklis'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Simpan Ceklis'));
       await tester.pumpAndSettle();
       expect(repo.saveCount, 1);
@@ -880,35 +882,32 @@ void main() {
     });
   });
 
-  group('HomePage Sinkron (FR-13)', () {
-    Future<void> pumpHome(
+  group('HomePage Sinkron (FR-13) — pindah ke Lainnya', () {
+    Future<void> pumpMore(
       WidgetTester tester, {
       required FakeSyncService sync,
     }) async {
       tester.view.physicalSize = const Size(900, 3000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
-      final existing = Patient.newLocal(
-        name: 'Sitti',
-        age: 28,
-        heightCm: 155,
-        weightKg: 52,
+      await tester.pumpWidget(
+        MaterialApp(home: MorePage(syncService: sync)),
       );
-      await _pumpApp(
-        tester,
-        FakePatientRepository(initial: existing),
-        bpRepo: FakeBpRepository(),
-        syncService: sync,
-      );
+      await tester.pumpAndSettle();
     }
 
     testWidgets('semua tersinkron menampilkan konfirmasi', (tester) async {
       final sync = FakeSyncService(
         summary: const SyncSummary(sent: 3, failed: 0),
       );
-      await pumpHome(tester, sync: sync);
+      await pumpMore(tester, sync: sync);
 
-      await tester.tap(find.text('Sinkron'));
+      await tester.scrollUntilVisible(
+        find.text('Sinkron Sekarang'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Sinkron Sekarang'));
       await tester.pumpAndSettle();
 
       expect(sync.callCount, 1);
@@ -919,9 +918,14 @@ void main() {
       final sync = FakeSyncService(
         summary: const SyncSummary(sent: 1, failed: 2),
       );
-      await pumpHome(tester, sync: sync);
+      await pumpMore(tester, sync: sync);
 
-      await tester.tap(find.text('Sinkron'));
+      await tester.scrollUntilVisible(
+        find.text('Sinkron Sekarang'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Sinkron Sekarang'));
       await tester.pumpAndSettle();
 
       expect(sync.callCount, 1);
@@ -934,9 +938,14 @@ void main() {
     testWidgets('tidak ada data baru menampilkan status terbaru',
         (tester) async {
       final sync = FakeSyncService();
-      await pumpHome(tester, sync: sync);
+      await pumpMore(tester, sync: sync);
 
-      await tester.tap(find.text('Sinkron'));
+      await tester.scrollUntilVisible(
+        find.text('Sinkron Sekarang'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Sinkron Sekarang'));
       await tester.pumpAndSettle();
 
       expect(sync.callCount, 1);
@@ -962,7 +971,6 @@ void main() {
           home: HomePage(
             repository: FakePatientRepository(initial: existing),
             bpRepository: bpRepo,
-            syncService: FakeSyncService(),
           ),
         ),
       );
@@ -1232,6 +1240,7 @@ class FakeBookletRepository extends BookletRepository {
 class FakeAncRepository extends AncRepository {
   AncCheck? stored;
   AncCheck? existing;
+  List<AncCheck> historyList = [];
   int saveCount = 0;
   int syncCount = 0;
 
@@ -1240,6 +1249,13 @@ class FakeAncRepository extends AncRepository {
 
   @override
   Future<AncCheck?> getByVisitedAt(DateTime visitedAt) async => existing;
+
+  @override
+  Future<List<AncCheck>> history({int? limit}) async {
+    final list = historyList.isNotEmpty ? historyList : (stored != null ? [stored!] : <AncCheck>[]);
+    if (limit != null && list.length > limit) return list.sublist(0, limit);
+    return list;
+  }
 
   @override
   Future<void> saveLocal(AncCheck check) async {
@@ -1259,11 +1275,19 @@ class FakeAncRepository extends AncRepository {
 
 class FakeKickRepository extends KickRepository {
   KickCount? stored;
+  List<KickCount> historyList = [];
   int saveCount = 0;
   int syncCount = 0;
 
   @override
   Future<Patient?> localPatient() async => null;
+
+  @override
+  Future<List<KickCount>> history({int? limit}) async {
+    final list = historyList.isNotEmpty ? historyList : (stored != null ? [stored!] : <KickCount>[]);
+    if (limit != null && list.length > limit) return list.sublist(0, limit);
+    return list;
+  }
 
   @override
   Future<void> saveLocal(KickCount kick) async {
@@ -1295,15 +1319,26 @@ class FakeSyncService extends SyncService {
     callCount++;
     return summary;
   }
+
+  @override
+  Future<void> pullRemoteConfig() async {}
 }
 
 class FakeSymptomRepository extends SymptomRepository {
   SymptomCheck? stored;
+  List<SymptomCheck> historyList = [];
   int saveCount = 0;
   int syncCount = 0;
 
   @override
   Future<Patient?> localPatient() async => null;
+
+  @override
+  Future<List<SymptomCheck>> history({int? limit}) async {
+    final list = historyList.isNotEmpty ? historyList : (stored != null ? [stored!] : <SymptomCheck>[]);
+    if (limit != null && list.length > limit) return list.sublist(0, limit);
+    return list;
+  }
 
   @override
   Future<SymptomCheck?> getByDate(DateTime date) async => stored;

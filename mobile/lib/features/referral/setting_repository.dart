@@ -22,6 +22,7 @@ class SettingRepository {
   /// Ambil pengaturan dari server lalu simpan ke cache lokal.
   ///
   /// Mengembalikan null bila gagal / belum aktif; cache lama tetap terbaca.
+  /// Bila `updatedAt` sama dengan cache, tidak menulis ulang (hemat I/O).
   Future<ReferralSettings?> fetchRemote() async {
     try {
       await DeviceRegistrar(_api)
@@ -40,6 +41,12 @@ class SettingRepository {
           settings.emergencyPhone.isEmpty &&
           settings.puskesmasName.isEmpty;
       if (!isEmpty) {
+        final local = await getLocal();
+        if (local?.updatedAt != null &&
+            settings.updatedAt != null &&
+            local!.updatedAt == settings.updatedAt) {
+          return local;
+        }
         await _cache(settings);
         return settings;
       }
@@ -53,6 +60,13 @@ class SettingRepository {
         return null;
       }
     }
+  }
+
+  /// Tarik pengaturan terbaru di background tanpa throw — untuk AutoSync.
+  Future<void> refreshInBackground() async {
+    try {
+      await fetchRemote().timeout(const Duration(seconds: 15));
+    } catch (_) {}
   }
 
   /// Isi cache dari asset bawaan bila cache masih kosong / rusak (offline-first).

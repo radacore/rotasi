@@ -31,7 +31,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _index = 0;
   final Set<int> _visited = {0};
   final _navKeys = List<GlobalKey<NavigatorState>>.generate(
@@ -43,12 +43,19 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _autoSync = AutoSync(syncService: widget.syncService);
     _autoSync.start();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _autoSync.onResume();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoSync.dispose();
     super.dispose();
   }
@@ -57,7 +64,6 @@ class _HomeShellState extends State<HomeShell> {
     HomePage(
       repository: widget.repository,
       bpRepository: widget.bpRepository,
-      syncService: widget.syncService,
     ),
     MeasurementPage(repository: widget.bpRepository),
     TrendPage(repository: widget.bpRepository),

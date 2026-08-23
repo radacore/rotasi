@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../core/sync/sync_service.dart';
 import '../measurement/bp_measurement.dart';
 import '../measurement/bp_repository.dart';
 import '../measurement/measurement_page.dart';
@@ -20,12 +19,10 @@ class HomePage extends StatefulWidget {
     super.key,
     this.repository,
     this.bpRepository,
-    this.syncService,
   });
 
   final PatientRepository? repository;
   final BpRepository? bpRepository;
-  final SyncService? syncService;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -34,17 +31,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Patient? _patient;
   BpMeasurement? _lastMeasurement;
-  bool _syncing = false;
   late final PatientRepository _repository;
   late final BpRepository _bpRepository;
-  late final SyncService _syncService;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository ?? PatientRepository();
     _bpRepository = widget.bpRepository ?? BpRepository();
-    _syncService = widget.syncService ?? SyncService();
     _bpRepository.addListener(_onBpChanged);
     _load();
   }
@@ -90,22 +84,6 @@ class _HomePageState extends State<HomePage> {
     // Muat ulang profil setelah kembali, agar sapaan ikut terbarui bila diedit.
     if (!mounted) return;
     _load();
-  }
-
-  Future<void> _sync() async {
-    if (_syncing) return;
-    setState(() => _syncing = true);
-    final summary = await _syncService.syncAll();
-    if (!mounted) return;
-    setState(() => _syncing = false);
-
-    final message = summary.sent == 0 && summary.failed == 0
-        ? 'Semua data sudah tersinkron.'
-        : summary.failed == 0
-            ? 'Sinkron selesai: ${summary.sent} data terkirim.'
-            : 'Sinkron selesai: ${summary.sent} terkirim, '
-                '${summary.failed} gagal (dicoba lagi nanti).';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -158,21 +136,6 @@ class _HomePageState extends State<HomePage> {
           ElevatedButton(
             onPressed: _openMeasurement,
             child: const Text('Ukur Tensi'),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _syncing ? null : _sync,
-              icon: _syncing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync),
-              label: Text(_syncing ? 'Menyinkron…' : 'Sinkron'),
-            ),
           ),
         ],
       ),

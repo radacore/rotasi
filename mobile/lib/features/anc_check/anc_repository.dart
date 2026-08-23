@@ -40,6 +40,17 @@ class AncRepository {
     return AncCheck.fromMap(rows.first);
   }
 
+  /// Riwayat kunjungan urut terbaru di atas (offline-first).
+  Future<List<AncCheck>> history({int? limit}) async {
+    final db = await AppDatabase.instance;
+    final rows = await db.query(
+      'anc_checks',
+      orderBy: 'visited_at DESC',
+      limit: limit,
+    );
+    return rows.map(AncCheck.fromMap).toList();
+  }
+
   /// Kunjungan yang belum tersinkron (FR-13).
   Future<List<AncCheck>> unsynced() async {
     final db = await AppDatabase.instance;

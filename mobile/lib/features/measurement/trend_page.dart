@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'bp_measurement.dart';
@@ -50,7 +51,6 @@ class _TrendPageState extends State<TrendPage> {
   late final BpRepository _repository;
   List<BpMeasurement> _data = const [];
   bool _loaded = false;
-  static const int _kMaxDays = 28;
 
   @override
   void initState() {
@@ -95,9 +95,6 @@ class _TrendPageState extends State<TrendPage> {
     }
     final days = byDay.values.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    if (days.length > _kMaxDays) {
-      return days.sublist(days.length - _kMaxDays);
-    }
     return days;
   }
 
@@ -129,27 +126,63 @@ class _TrendPageState extends State<TrendPage> {
         'sehat dan pantau rutin.';
   }
 
+  String _kForDesc(int descIndex, int total) => 'K${total - descIndex}';
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tren Tekanan Darah')),
-      body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
-          : _data.isEmpty
-              ? const _EmptyState()
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    children: _buildBody(context),
-                  ),
-                ),
+    if (!_loaded) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Tren Tekanan Darah')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_data.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Tren Tekanan Darah')),
+        body: const _EmptyState(),
+      );
+    }
+    final days = _buildDays();
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Tren Tekanan Darah'),
+          bottom: const TabBar(
+            labelColor: AppColors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: AppColors.white,
+            indicatorWeight: 3,
+            labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            unselectedLabelStyle:
+                TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+            tabs: [
+              Tab(text: 'Grafik'),
+              Tab(text: 'Riwayat'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: _buildGrafikBody(context, days),
+              ),
+            ),
+            RefreshIndicator(
+              onRefresh: _load,
+              child: _buildRiwayatBody(context),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  List<Widget> _buildBody(BuildContext context) {
-    final days = _buildDays();
+  List<Widget> _buildGrafikBody(BuildContext context, List<_DayRow> days) {
     final counts = {
       for (final s in BpStatus.values) s: days.where((d) => d.status == s).length,
     };
@@ -194,6 +227,24 @@ class _TrendPageState extends State<TrendPage> {
       const SizedBox(height: 12),
       _InterpretationCard(message: _interpretation(days)),
     ];
+  }
+
+  Widget _buildRiwayatBody(BuildContext context) {
+    // Riwayat per tes, desc terbaru di atas, 2 baris/card + label K1-K6 ordinal
+    final sorted = _data.toList()
+      ..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
+    final total = sorted.length;
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: total,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final m = sorted[i];
+        final k = _kForDesc(i, total);
+        return _HistoryTile(measurement: m, kLabel: k);
+      },
+    );
   }
 
   List<Widget> _buildCharts(List<_DayRow> days) {
@@ -434,6 +485,127 @@ class _InterpretationCard extends StatelessWidget {
                     .bodyMedium
                     ?.copyWith(color: AppColors.textPrimary),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.measurement, required this.kLabel});
+
+  final BpMeasurement measurement;
+  final String kLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = measurement;
+    final status = m.status;
+    final date = DateFormat('dd MMM yyyy • HH:mm').format(m.measuredAt.toLocal());
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Baris 1: tanggal + K + status
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          date,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          kLabel,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: status.color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(status.icon, size: 12, color: status.color),
+                      const SizedBox(width: 4),
+                      Text(
+                        status.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: status.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // Baris 2: nilai
+            Row(
+              children: [
+                Text(
+                  '${m.avgSystolic}/${m.avgDiastolic}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                      ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'mmHg',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '(${m.systolic1}/${m.diastolic1} • ${m.systolic2}/${m.diastolic2})',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

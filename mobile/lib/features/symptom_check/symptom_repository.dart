@@ -19,47 +19,41 @@ class SymptomRepository {
 
   static String _dayOf(DateTime d) => d.toIso8601String().substring(0, 10);
 
-  /// Simpan/mutakhirkan ceklis untuk tanggal tersebut (satu per hari).
+  /// Simpan ceklis (satu baris per simpan, sinkron per timestamp).
+  /// Web menyimpan per jam (17:56:21..18:06:14) 5/hari, jadi tidak upsert
+  /// per hari — biar Riwayat mobile tampil semua seperti web.
   Future<void> saveForDate(SymptomCheck check) async {
     final db = await AppDatabase.instance;
-    final rows = await db.query(
+    await db.insert(
       'symptom_checks',
-      where: "substr(checked_at, 1, 10) = ?",
-      whereArgs: [_dayOf(check.checkedAt)],
-      limit: 1,
-    );
-    if (rows.isEmpty) {
-      await db.insert(
-        'symptom_checks',
-        check.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      return;
-    }
-    final existing = SymptomCheck.fromMap(rows.first);
-    await db.update(
-      'symptom_checks',
-      {
-        ...check.toMap(),
-        'uuid': existing.uuid,
-        'synced': 0,
-      },
-      where: 'uuid = ?',
-      whereArgs: [existing.uuid],
+      check.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  /// Ambil ceklis untuk tanggal tertentu (null bila belum diisi).
+  /// Ambil ceklis terbaru untuk tanggal tertentu (untuk isi Form).
   Future<SymptomCheck?> getByDate(DateTime date) async {
     final db = await AppDatabase.instance;
     final rows = await db.query(
       'symptom_checks',
       where: "substr(checked_at, 1, 10) = ?",
       whereArgs: [_dayOf(date)],
+      orderBy: 'checked_at DESC',
       limit: 1,
     );
     if (rows.isEmpty) return null;
     return SymptomCheck.fromMap(rows.first);
+  }
+
+  /// Riwayat ceklis urut terbaru di atas (offline-first, untuk tab Riwayat).
+  Future<List<SymptomCheck>> history({int? limit}) async {
+    final db = await AppDatabase.instance;
+    final rows = await db.query(
+      'symptom_checks',
+      orderBy: 'checked_at DESC',
+      limit: limit,
+    );
+    return rows.map(SymptomCheck.fromMap).toList();
   }
 
   /// Ceklis yang belum tersinkron (FR-13).

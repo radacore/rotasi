@@ -7,6 +7,7 @@ class ReferralSettings {
     this.puskesmasAddress = '',
     this.defaultWaMessage = '',
     this.rules = const ReferralRules(),
+    this.updatedAt,
   });
 
   final String appName;
@@ -15,9 +16,15 @@ class ReferralSettings {
   final String puskesmasAddress;
   final String defaultWaMessage;
   final ReferralRules rules;
+  final DateTime? updatedAt;
 
   factory ReferralSettings.fromJson(Map<String, dynamic> json) {
     final rulesJson = json['referral_rules'] as Map<String, dynamic>?;
+    DateTime? updated;
+    final rawUpdated = json['updated_at'];
+    if (rawUpdated is String && rawUpdated.isNotEmpty) {
+      updated = DateTime.tryParse(rawUpdated);
+    }
     return ReferralSettings(
       appName: json['app_name'] as String? ?? '',
       emergencyPhone: json['emergency_phone'] as String? ?? '',
@@ -27,6 +34,7 @@ class ReferralSettings {
       rules: rulesJson == null
           ? const ReferralRules()
           : ReferralRules.fromJson(rulesJson),
+      updatedAt: updated,
     );
   }
 
@@ -37,6 +45,7 @@ class ReferralSettings {
         'puskesmas_address': puskesmasAddress,
         'default_wa_message': defaultWaMessage,
         'referral_rules': rules.toJson(),
+        if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
       };
 }
 

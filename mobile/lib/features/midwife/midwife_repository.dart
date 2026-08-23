@@ -53,6 +53,12 @@ class MidwifeRepository {
     }
   }
 
+  Future<void> refreshInBackground() async {
+    try {
+      await fetchRemote().timeout(const Duration(seconds: 15));
+    } catch (_) {}
+  }
+
   /// Isi cache dari asset bawaan bila cache masih kosong / rusak (offline-first).
   ///
   /// Mengembalikan daftar yang baru disemai, atau null bila cache sudah valid.

@@ -6,12 +6,15 @@ import useUnsavedGuard from '../../hooks/useUnsavedGuard.jsx';
 import { GearIcon } from '../../components/icons';
 
 export default function SettingsEdit({ settings }) {
+    const colorOptions = ['green', 'yellow', 'orange', 'red'];
     const { data, setData, put, processing, errors } = useForm({
         emergency_phone: settings.emergency_phone,
         puskesmas_name: settings.puskesmas_name,
         puskesmas_address: settings.puskesmas_address,
         default_wa_message: settings.default_wa_message,
         kick_threshold: settings.kick_threshold,
+        referral_persistent_colors: settings.referral_persistent_colors ?? ['orange', 'red'],
+        referral_symptom_check_trigger: settings.referral_symptom_check_trigger ?? true,
     });
 
     const initialRef = useRef(JSON.stringify(data));
@@ -95,7 +98,36 @@ export default function SettingsEdit({ settings }) {
                                 />
                                 {errors.kick_threshold && <p className="field__error">{errors.kick_threshold}</p>}
                             </div>
+                            <div className="field">
+                                <span className="field__label">Warna rujukan persisten</span>
+                                <div className="flex flex-wrap gap-3">
+                                    {colorOptions.map((c) => (
+                                        <label key={c} className="inline-flex items-center gap-2 text-sm">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.referral_persistent_colors.includes(c)}
+                                                onChange={(e) => {
+                                                    const next = e.target.checked
+                                                        ? [...data.referral_persistent_colors, c]
+                                                        : data.referral_persistent_colors.filter((x) => x !== c);
+                                                    setData('referral_persistent_colors', next);
+                                                }}
+                                            />
+                                            <span className="capitalize">{c}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {errors.referral_persistent_colors && <p className="field__error">{errors.referral_persistent_colors}</p>}
+                            </div>
                         </div>
+                        <label className="inline-flex items-center gap-2 text-sm font-medium">
+                            <input
+                                type="checkbox"
+                                checked={!!data.referral_symptom_check_trigger}
+                                onChange={(e) => setData('referral_symptom_check_trigger', e.target.checked)}
+                            />
+                            Picu rujukan bila cek gejala ada tanda bahaya
+                        </label>
                     </div>
                 </div>
 

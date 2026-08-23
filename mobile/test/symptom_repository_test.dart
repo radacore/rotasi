@@ -53,7 +53,7 @@ void main() {
     expect(stored.synced, false);
   });
 
-  test('saveForDate hari yang sama meng-update record (uuid tetap)', () async {
+  test('saveForDate hari yang sama membuat record baru (tidak upsert)', () async {
     final repo = SymptomRepository();
     final s1 = build(uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
     await repo.saveForDate(s1);
@@ -64,10 +64,12 @@ void main() {
     );
     await repo.saveForDate(s2);
 
-    final stored = await repo.getByDate(DateTime(2026, 8, 20));
-    expect(stored, isNotNull);
-    expect(stored!.uuid, s1.uuid, reason: 'uuid hari yang sama tidak berubah');
-    expect(stored.headache, false, reason: 'nilai terbaru diterapkan');
+    final history = await repo.history();
+    expect(history.length, 2, reason: 'satu hari bisa 5x per jam seperti web');
+    expect(history.first.uuid, s2.uuid, reason: 'terbaru di atas DESC');
+    final latest = await repo.getByDate(DateTime(2026, 8, 20));
+    expect(latest!.uuid, s2.uuid);
+    expect(latest.headache, false);
   });
 
   test('getByDate tanggal berbeda -> null', () async {
