@@ -17,6 +17,8 @@ class MidwifeRepository {
   static const _cacheKey = 'midwives_cache';
   static const _updatedAtKey = 'midwives_updated_at';
   static const _seedAsset = 'assets/data/midwives.json';
+  static const _seedVersionKey = 'midwives_seed_version';
+  static const _seedVersion = 2;
 
   final ApiClient _api;
 
@@ -101,6 +103,50 @@ class MidwifeRepository {
         return null;
       }
     }
+    // Migrasi seed v2: bila cache masih versi 1 (Lusi saja), segarkan ke asset terbaru
+    // agar offline pertama langsung sesuai web produksi.
+    final seededVer = prefs.getInt(_seedVersionKey);
+    if (seededVer == null) {
+      final cachedRaw = prefs.getString(_cacheKey);
+      if (cachedRaw != null) {
+        try {
+          final d = jsonDecode(cachedRaw) as List<dynamic>;
+          final looksLikeV1 = d.length == 1 &&
+              (d.first as Map<String, dynamic>)['name'] == 'Lusi';
+          if (looksLikeV1) {
+            final updatedAt = prefs.getString(_updatedAtKey);
+            if (updatedAt == null || updatedAt.isEmpty) {
+              // Bukan intent admin — migrasi diam-diam ke seed terbaru
+              try {
+                final raw = await rootBundle
+                    .loadString(_seedAsset)
+                    .timeout(const Duration(seconds: 2));
+                final data = jsonDecode(raw) as List<dynamic>;
+                final midwives = data
+                    .map((e) => Midwife.fromJson(e as Map<String, dynamic>))
+                    .toList();
+                if (midwives.isNotEmpty && midwives.length > 1) {
+                  await prefs
+                      .setString(
+                        _cacheKey,
+                        jsonEncode(midwives.map((m) => m.toJson()).toList()),
+                      )
+                      .timeout(const Duration(seconds: 2));
+                  await prefs.setInt(_seedVersionKey, _seedVersion);
+                  // Bersihkan updated_at lama agar fetchRemote berikutnya pakai since baru
+                  await prefs.remove(_updatedAtKey);
+                  return midwives;
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (_) {}
+      }
+      // Tandai sudah lewat migrasi agar tidak cek tiap launch
+      try {
+        await prefs.setInt(_seedVersionKey, _seedVersion);
+      } catch (_) {}
+    }
     final cached = prefs.getString(_cacheKey);
     if (cached != null) {
       try {
@@ -134,6 +180,7 @@ class MidwifeRepository {
             jsonEncode(midwives.map((m) => m.toJson()).toList()),
           )
           .timeout(const Duration(seconds: 2));
+      await prefs.setInt(_seedVersionKey, _seedVersion);
       return midwives;
     } catch (e) {
       debugPrint('[MidwifeRepository.ensureSeeded] seed failed: $e');

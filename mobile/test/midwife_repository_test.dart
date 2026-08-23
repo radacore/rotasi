@@ -76,7 +76,8 @@ void main() {
     // tidak stuck spinner (fix hang di TECNO KM6).
     final local = await repo.getLocal();
     expect(local, isNotEmpty);
-    expect(local.first.name, 'Lusi');
+    expect(local.length, 2);
+    expect(local.any((m) => m.phone == '081227088313'), isTrue);
   });
 
   test('ensureSeeded mengisi cache dari asset bawaan', () async {
@@ -84,13 +85,12 @@ void main() {
     final seeded = await repo.ensureSeeded();
     expect(seeded, isNotNull);
     expect(seeded, isNotEmpty);
-    expect(seeded!.first.name, 'Lusi');
-    expect(seeded.first.role, 'Bidan');
-    expect(seeded.first.phone, '081227088313');
+    expect(seeded!.length, 2);
+    expect(seeded.any((m) => m.phone == '081227088313'), isTrue);
 
     final local = await repo.getLocal();
     expect(local, isNotEmpty);
-    expect(local.first.name, 'Lusi');
+    expect(local.any((m) => m.phone == '081227088313'), isTrue);
   });
 
   test('ensureSeeded tidak menimpa cache yang sudah ada', () async {

@@ -2,7 +2,7 @@
   "app_name": "ROTASI",
   "emergency_phone": "119",
   "puskesmas_name": "Puskesmas Barombong",
-  "puskesmas_address": "",
+  "puskesmas_address": "Jl. Perjanjian Bongaya, Barombong, Kec. Tamalate, Kota Makassar, Sulawesi Selatan 90225",
   "default_wa_message": "",
   "referral_rules": {
     "persistent_colors": [

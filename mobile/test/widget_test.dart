@@ -795,9 +795,9 @@ void main() {
       final repo = FakeMidwifeRepository(midwives: const []);
       await pumpMidwife(tester, repo);
 
-      // Fallback offline-first: MidwifePage pakai default Lusi bila kosong.
+      // Fallback offline-first: daftar bawaan terbaru (sesuai web) tetap tampil bila belum pernah sinkron.
       expect(find.text('Belum ada daftar bidan'), findsNothing);
-      expect(find.text('Lusi'), findsOneWidget);
+      expect(find.text('Dwi Luasianti A.Md.keb'), findsOneWidget);
     });
   });
 

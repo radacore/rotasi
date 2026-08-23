@@ -16,6 +16,8 @@ class SettingRepository {
 
   static const _cacheKey = 'referral_settings_cache';
   static const _seedAsset = 'assets/data/referral_settings.json';
+  static const _seedVersionKey = 'referral_settings_seed_version';
+  static const _seedVersion = 2;
 
   final ApiClient _api;
 
@@ -92,6 +94,36 @@ class SettingRepository {
         return null;
       }
     }
+    // Migrasi seed v2: alamat puskesmas di cache lama kosong → segarkan dari asset terbaru
+    final seededVer = prefs.getInt(_seedVersionKey);
+    if (seededVer == null) {
+      final cachedRaw = prefs.getString(_cacheKey);
+      if (cachedRaw != null) {
+        try {
+          final d = jsonDecode(cachedRaw) as Map<String, dynamic>;
+          final existing = ReferralSettings.fromJson(d);
+          if (existing.puskesmasAddress.isEmpty) {
+            try {
+              final raw = await rootBundle
+                  .loadString(_seedAsset)
+                  .timeout(const Duration(seconds: 2));
+              final latest = ReferralSettings.fromJson(
+                  jsonDecode(raw) as Map<String, dynamic>);
+              if (latest.puskesmasAddress.isNotEmpty) {
+                await prefs
+                    .setString(_cacheKey, jsonEncode(latest.toJson()))
+                    .timeout(const Duration(seconds: 2));
+                await prefs.setInt(_seedVersionKey, _seedVersion);
+                return latest;
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+      try {
+        await prefs.setInt(_seedVersionKey, _seedVersion);
+      } catch (_) {}
+    }
     final cached = prefs.getString(_cacheKey);
     if (cached != null) {
       try {
@@ -116,6 +148,7 @@ class SettingRepository {
       await prefs
           .setString(_cacheKey, jsonEncode(settings.toJson()))
           .timeout(const Duration(seconds: 2));
+      await prefs.setInt(_seedVersionKey, _seedVersion);
       return settings;
     } catch (e) {
       debugPrint('[SettingRepository.ensureSeeded] seed failed: $e');

@@ -35,7 +35,9 @@ class MidwifePage extends StatefulWidget {
 class _MidwifePageState extends State<MidwifePage> {
   late final MidwifeRepository _repository;
   List<Midwife> _midwives = const [
-    Midwife(id: 9, name: 'Lusi', role: 'Bidan', phone: '081227088313'),
+    Midwife(
+        id: 2, name: 'Nurafni Oktavia. A,Md.keb', role: 'Bidan', phone: '085298805432'),
+    Midwife(id: 1, name: 'Dwi Luasianti A.Md.keb', role: 'Bidan', phone: '081227088313'),
   ];
   bool _loading = false;
   // ignore: unused_field, field disimpan untuk diagnosa walau label Sumber di UI dihapus
