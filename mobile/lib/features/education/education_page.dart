@@ -82,35 +82,31 @@ class _EducationPageState extends State<EducationPage> {
     );
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Pustaka Edukasi')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _CoverageCard(),
-                  const SizedBox(height: 12),
-                  if (_booklets.isEmpty)
-                    _EmptyView(onRefresh: _load)
-                  else
-                    for (var i = 0; i < _booklets.length; i++) ...[
-                      _BookletCard(
-                        booklet: _booklets[i],
-                        needsDownload: _needsDownload.contains(_booklets[i].id),
-                        downloading: _downloadingIds.contains(_booklets[i].id),
-                        onDownload: () => _download(_booklets[i]),
-                        onOpen: () => _open(_booklets[i]),
-                        onRefresh: _load,
-                      ),
-                      if (i < _booklets.length - 1) const SizedBox(height: 12),
-                    ],
-                ],
-              ),
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _CoverageCard(),
+                const SizedBox(height: 12),
+                if (_booklets.isEmpty)
+                  _EmptyView(onRefresh: _load)
+                else
+                  for (var i = 0; i < _booklets.length; i++) ...[
+                    _BookletCard(
+                      booklet: _booklets[i],
+                      needsDownload: _needsDownload.contains(_booklets[i].id),
+                      downloading: _downloadingIds.contains(_booklets[i].id),
+                      onDownload: () => _download(_booklets[i]),
+                      onOpen: () => _open(_booklets[i]),
+                    ),
+                    if (i < _booklets.length - 1) const SizedBox(height: 12),
+                  ],
+              ],
             ),
     );
   }
@@ -188,7 +184,6 @@ class _BookletCard extends StatelessWidget {
     required this.downloading,
     required this.onDownload,
     required this.onOpen,
-    required this.onRefresh,
   });
 
   final Booklet booklet;
@@ -196,7 +191,6 @@ class _BookletCard extends StatelessWidget {
   final bool downloading;
   final VoidCallback onDownload;
   final VoidCallback onOpen;
-  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -262,28 +256,17 @@ class _BookletCard extends StatelessWidget {
                         Text('Mengunduh Booklet…'),
                       ],
                     )
+                  else if (available)
+                    ElevatedButton.icon(
+                      onPressed: onOpen,
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Buka Booklet'),
+                    )
                   else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: available
-                              ? ElevatedButton.icon(
-                                  onPressed: onOpen,
-                                  icon: const Icon(Icons.visibility_outlined),
-                                  label: const Text('Buka Booklet'),
-                                )
-                              : OutlinedButton.icon(
-                                  onPressed: onDownload,
-                                  icon: const Icon(Icons.download_outlined),
-                                  label: const Text('Unduh Booklet'),
-                                ),
-                        ),
-                        IconButton(
-                          tooltip: 'Periksa pembaruan',
-                          onPressed: onRefresh,
-                          icon: const Icon(Icons.refresh),
-                        ),
-                      ],
+                    OutlinedButton.icon(
+                      onPressed: onDownload,
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Unduh Booklet'),
                     ),
                 ],
               ),
@@ -357,12 +340,10 @@ class _BookletCoverState extends State<_BookletCover> {
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 96,
-        child: AspectRatio(
-          aspectRatio: 1 / 1.4142,
-          child: bytes == null
-              ? _placeholder(context)
-              : Image.memory(bytes, fit: BoxFit.fill),
-        ),
+        height: 96,
+        child: bytes == null
+            ? _placeholder(context)
+            : Image.memory(bytes, fit: BoxFit.cover),
       ),
     );
   }

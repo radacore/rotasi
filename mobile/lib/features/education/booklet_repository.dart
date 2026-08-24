@@ -55,9 +55,9 @@ class BookletRepository {
 
   /// Semai booklet bawaan (asset) ke penyimpanan bila belum ada (offline-first).
   ///
-  /// Menyalin PDF yang dibundel ke folder dokumen lalu menyimpan metadata.
-  /// Mengembalikan booklet yang disemai, atau null bila sudah ada / gagal.
-  /// Versi server akan menimpanya (dan mengunduh PDF baru) saat online.
+  /// Judul sama dengan server (`Booklet Edukasi Ibu Hamil`) agar tidak ganda
+  /// secara tampilan. Seed dipakai offline-first; saat online server id berbeda
+  /// (mis. id 5) akan disinkronkan oleh [fetchAll] dan seed yatim akan dibersihkan.
   Future<Booklet?> ensureSeeded() async {
     final existing = await getAllLocal();
     for (final b in existing) {
@@ -78,7 +78,7 @@ class BookletRepository {
       );
       final seeded = Booklet(
         id: 1,
-        title: 'Booklet Edukasi',
+        title: 'Booklet Edukasi Ibu Hamil',
         version: '0',
         fileUrl: _seedAsset,
         fileSize: data.lengthInBytes,
@@ -181,15 +181,26 @@ class BookletRepository {
         booklets.add(merged);
         if (!(sameFile && fileExists)) needsDownload.add(remote.id);
       }
-      // Hapus booklet yang sudah tidak aktif di server (opsional, aman: tetap ada file lama tapi tidak ditampilkan)
+      // Hapus booklet yatim yang tak ada di server. Seed yatim (id 1 _seedAsset) juga
+      // dibersihkan bila server sudah kirim 1+ booklet (id berbeda, judul sama) — cegah 2 card duplikat.
       final remoteIds = remotes.map((e) => e.id).toSet();
+      final shouldPurgeSeed = remoteIds.isNotEmpty;
       for (final id in locals.keys) {
-        if (!remoteIds.contains(id) && locals[id]!.fileUrl != _seedAsset) {
-          try {
-            final db = await AppDatabase.instance;
-            await db.delete('booklets', where: 'id = ?', whereArgs: [id]);
-          } catch (_) {}
-        }
+        if (remoteIds.contains(id)) continue;
+        final isSeed = locals[id]!.fileUrl == _seedAsset;
+        if (isSeed && !shouldPurgeSeed) continue;
+        try {
+          final orphanPath = locals[id]!.localPath;
+          final db = await AppDatabase.instance;
+          await db.delete('booklets', where: 'id = ?', whereArgs: [id]);
+          // Hapus file fisik yatim bila bukan seed yang masih dipakai offline (seed sudah dibersihkan di atas)
+          if (orphanPath != null && isSeed) {
+            try {
+              final f = File(orphanPath);
+              if (await f.exists()) await f.delete();
+            } catch (_) {}
+          }
+        } catch (_) {}
       }
       return (booklets: booklets, needsDownload: needsDownload);
     } catch (_) {
