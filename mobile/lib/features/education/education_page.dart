@@ -46,10 +46,42 @@ class _EducationPageState extends State<EducationPage> {
     });
     final result = await _repository.fetchAll();
     if (!mounted) return;
-    setState(() {
+    // Self-heal duplikat lama: offline fileSize == server fileSize -> 1 card saja
+    try {
+      await _repository.purgeDuplicateSeedBySize();
+    } catch (_) {}
+    final healed = await _repository.getAllLocal();
+    if (!mounted) return;
+    // Jika ada internet: result sudah dedup (seed dimigrasi ke id server). Jika offline/304:
+    // healed adalah sumber kebenaran. Ambil yang paling konsisten (paling sedikit tapi tidak kosong).
+    if (result.booklets.isNotEmpty && healed.isNotEmpty) {
+      // result sudah mencerminkan server; healed setelah purge adalah DB final
+      if (healed.length < result.booklets.length) {
+        _booklets = healed;
+        _needsDownload = {};
+      } else if (healed.length == 1 && result.booklets.length == 1) {
+        _booklets = result.booklets;
+        // File offline sama -> sudah tersedia, jangan minta unduh
+        if (_booklets.first.isDownloaded) {
+          _needsDownload = {};
+        } else {
+          _needsDownload = result.needsDownload;
+        }
+      } else {
+        _booklets = result.booklets;
+        _needsDownload = result.needsDownload;
+      }
+    } else if (healed.isNotEmpty) {
+      _booklets = healed;
+      _needsDownload = result.needsDownload;
+      if (_booklets.length == 1 && _booklets.first.isDownloaded) {
+        _needsDownload = {};
+      }
+    } else {
       _booklets = result.booklets;
       _needsDownload = result.needsDownload;
-    });
+    }
+    setState(() {});
   }
 
   Future<void> _download(Booklet meta) async {
