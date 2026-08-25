@@ -149,6 +149,8 @@ class _TrendPainter extends CustomPainter {
     if (plotW <= 0 || plotH <= 0) return;
 
     final plotRect = Rect.fromLTWH(_left, _top, plotW, plotH);
+    // Clip hanya untuk pita & garis agar tidak keluar plot; label angka di luar clip agar tidak terpotong.
+    canvas.save();
     canvas.clipRect(plotRect);
 
     // Pita warna latar.
@@ -185,11 +187,10 @@ class _TrendPainter extends CustomPainter {
           ..color = AppColors.border.withValues(alpha: 0.6)
           ..strokeWidth = 1,
       );
-      _drawLabel(canvas, v.toInt().toString(), Offset(_left - 6, y),
-          alignRight: true);
+      // Label Y tetap di dalam clip (kiri plot), aman — gambar setelah restore juga bisa, tetap di sini agar konsisten
     }
 
-    // Seri garis.
+    // Seri garis + dot.
     final n = xLabels.length;
     for (final s in series) {
       final paint = Paint()
@@ -219,7 +220,31 @@ class _TrendPainter extends CustomPainter {
       }
     }
 
-    // Label sumbu X.
+    canvas.restore();
+
+    // Label Y (di luar clip agar tidak terpotong di tepi)
+    for (final v in boundaries) {
+      final y = _y(v, plotH);
+      if (y < _top || y > _top + plotH) continue;
+      _drawLabel(canvas, v.toInt().toString(), Offset(_left - 6, y),
+          alignRight: true);
+    }
+
+    // Angka kecil di atas tiap titik — warna ikut seri (biru) + halo putih agar kontras di pita.
+    for (final s in series) {
+      for (var i = 0; i < n; i++) {
+        final v = s.values[i];
+        if (v == null) continue;
+        final p = Offset(_x(i, plotW), _y(v, plotH));
+        // Di atas dot 13px; jika mepet atas, pindah ke bawah dot agar tidak keluar canvas
+        final above = p - const Offset(0, 13);
+        final below = p + const Offset(0, 7);
+        final useBelow = above.dy < _top + 2;
+        _drawValueLabel(canvas, v.toInt().toString(), useBelow ? below : above, s.color, below: useBelow);
+      }
+    }
+
+    // Label sumbu X (di luar clip).
     final indices = <int>[];
     if (n <= 6) {
       for (var i = 0; i < n; i++) {
@@ -262,6 +287,29 @@ class _TrendPainter extends CustomPainter {
     final offset = alignRight
         ? pos - Offset(tp.width, tp.height / 2)
         : pos - Offset(tp.width / 2, tp.height / 2);
+    tp.paint(canvas, offset);
+  }
+
+  void _drawValueLabel(Canvas canvas, String text, Offset pos, Color color, {required bool below}) {
+    // Halo putih + teks 9px w700 — kecil namun terbaca di pita warna, tidak mengganggu dot/garis.
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: color,
+          shadows: const [
+            Shadow(color: Colors.white, blurRadius: 2),
+            Shadow(color: Colors.white, blurRadius: 4),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final offset = below
+        ? pos - Offset(tp.width / 2, 0)
+        : pos - Offset(tp.width / 2, tp.height);
     tp.paint(canvas, offset);
   }
 
