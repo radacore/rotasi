@@ -40,7 +40,7 @@ class StatusExplanation extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.code,
+                  entry.status.label.toUpperCase(),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: entry.status.color,
                     fontWeight: FontWeight.w800,
@@ -64,42 +64,35 @@ class StatusExplanation extends StatelessWidget {
 }
 
 class _Explanation {
-  const _Explanation(this.status, this.code, this.text);
+  const _Explanation(this.status, this.text);
 
   final BpStatus status;
-  final String code;
   final String text;
 }
 
 const _entries = <_Explanation>[
   _Explanation(
     BpStatus.hypotension,
-    'PINK - HIPOTENSI',
     'Tekanan darah rendah (<90/60). Cukupkan cairan ±2,5–3 L/hari, jangan bangun mendadak, tidur miring kiri. Jika sering pingsan/pusing hebat, segera hubungi bidan.',
   ),
   _Explanation(
     BpStatus.normal,
-    'HIJAU - AMAN',
     'Tekanan darah normal. Teruskan pola hidup sehat, makan bergizi, dan kontrol rutin ke bidan sesuai jadwal.',
   ),
   _Explanation(
     BpStatus.elevated,
-    'KUNING - WASPADA',
     'Tekanan darah mulai naik. Kurangi makanan asin, istirahat cukup, dan sampaikan hasil ini ke bidan saat pemeriksaan ANC berikutnya.',
   ),
   _Explanation(
     BpStatus.stage1,
-    'ORANYE - BERISIKO',
     'Tekanan darah sudah masuk Hipertensi Derajat 1. Ibu perlu segera berkonsultasi ke Puskesmas.',
   ),
   _Explanation(
     BpStatus.crisis,
-    'MERAH - BAHAYA',
     'Tekanan darah sangat tinggi (Hipertensi Derajat 2). Ibu harus segera ke Puskesmas atau RS, terutama jika disertai gejala berat.',
   ),
   _Explanation(
     BpStatus.emergency,
-    'MERAH TUA - DARURAT',
     'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS, hubungi 119 & keluarga siaga (Buku KIA 2025).',
   ),
 ];
