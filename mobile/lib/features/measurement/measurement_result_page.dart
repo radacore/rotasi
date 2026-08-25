@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../referral/referral_settings.dart';
+import '../referral/setting_repository.dart';
 import 'bp_measurement.dart';
 import 'bp_repository.dart';
 import 'bp_status.dart';
@@ -13,10 +16,12 @@ class MeasurementResultPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.measurement,
+    this.referralRepository,
   });
 
   final BpRepository repository;
   final BpMeasurement measurement;
+  final SettingRepository? referralRepository;
 
   @override
   State<MeasurementResultPage> createState() => _MeasurementResultPageState();
@@ -24,8 +29,59 @@ class MeasurementResultPage extends StatefulWidget {
 
 class _MeasurementResultPageState extends State<MeasurementResultPage> {
   bool _saving = false;
+  ReferralSettings? _referral;
+  // Darurat = tetap 4 warna, tapi ≥160 atau ≥110 perlu aksi gawat darurat (booklet p.19)
+  bool get _isEmergency =>
+      widget.measurement.avgSystolic >= 160 ||
+      widget.measurement.avgDiastolic >= 110;
+  // Hipotensi: booklet p.9 ~ ≤90/60
+  bool get _isHypotension =>
+      widget.measurement.avgSystolic <= 90 ||
+      widget.measurement.avgDiastolic <= 60;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReferral();
+  }
+
+  // Fallback statis bila kontak belum termuat (tanpa async timer agar test tidak pending)
+  static const _defaultReferral = ReferralSettings(
+    emergencyPhone: '119',
+    puskesmasName: 'Puskesmas Barombong',
+    puskesmasAddress:
+        'Jl. Perjanjian Bongaya, Barombong, Kec. Tamalate, Kota Makassar',
+  );
+
+  Future<void> _loadReferral() async {
+    final repo = widget.referralRepository;
+    if (repo == null) {
+      _referral = _defaultReferral;
+      return;
+    }
+    try {
+      final s = await repo.getLocal();
+      if (!mounted) return;
+      if (s != null) setState(() => _referral = s);
+    } catch (_) {}
+  }
+
+  ReferralSettings get _effectiveReferral => _referral ?? _defaultReferral;
+
+  Future<void> _call(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    try {
+      await launchUrl(uri);
+    } catch (_) {}
+  }
 
   String get _guidance {
+    if (_isHypotension) {
+      return 'Hipotensi (≤90/60 mmHg). Minum cukup (±2,5–3 L/hari), jangan bangun mendadak, tidur miring kiri. Jika sering pingsan/pusing hebat, segera hubungi bidan.';
+    }
+    if (_isEmergency) {
+      return 'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS, hubungi darurat & keluarga siaga.';
+    }
     switch (widget.measurement.status) {
       case BpStatus.crisis:
         return '≥140/90 mmHg (Buku KIA 2025). Segera ke faskes/layanan darurat.';
@@ -112,6 +168,83 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
               ),
             ),
           ),
+          if (_isEmergency || _isHypotension) ...[
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              color: (_isEmergency ? AppColors.crisis : AppColors.primary).withValues(alpha: 0.08),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _isEmergency ? Icons.emergency_outlined : Icons.water_drop_outlined,
+                          color: _isEmergency ? AppColors.crisis : AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _isEmergency ? 'Kontak Darurat — Segera Hubungi' : 'Hipotensi — Anjuran',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (_isEmergency) ...[
+                      Text(
+                        '1. Hubungi suami & keluarga siaga\n2. Siapkan perlengkapan\n3. Segera berangkat ke IGD terdekat',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () => _call(_effectiveReferral.emergencyPhone),
+                            icon: const Icon(Icons.call, size: 16),
+                            label: Text(_effectiveReferral.emergencyPhone),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.crisis,
+                              minimumSize: const Size(0, 36),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                          if (_effectiveReferral.puskesmasName.isNotEmpty)
+                            OutlinedButton.icon(
+                              onPressed: () {},
+                              icon: const Icon(Icons.local_hospital_outlined, size: 16),
+                              label: Text(_effectiveReferral.puskesmasName, style: const TextStyle(fontSize: 12)),
+                            ),
+                        ],
+                      ),
+                      if (_effectiveReferral.puskesmasAddress.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          _effectiveReferral.puskesmasAddress,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 11,
+                              ),
+                        ),
+                      ],
+                    ] else ...[
+                      Text(
+                        'Cukupkan cairan (±2,5–3 L/hari), jangan bangun mendadak, nutrisi seimbang (B12, folat), tidur miring kiri optimalkan aliran ke plasenta. Jika sering pingsan/pusing hebat → konsultasi bidan.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Card(
             margin: EdgeInsets.zero,
