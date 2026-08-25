@@ -59,15 +59,16 @@ const _startAngles = <double>[
   2 * math.pi / 3,   // Darurat    : kiri-atas (pusat 150°)
 ];
 
-/// Gap 2° antar sektor + sweep 58° (60°-gap) agar ada celah putih halus.
-const _gap = 2 * math.pi / 180;
+/// Gap 1.8° antar sektor + sweep agar ada celah putih halus.
+const _gap = 1.8 * math.pi / 180;
 const _sweep = 2 * math.pi / 6 - _gap;
 
-/// Donut tebal 35% radius: luar 0.92r, dalam 0.57r
-const _outerFactor = 0.92;
-const _innerFactor = 0.57;
-/// Sektor aktif menonjol keluar +6% radius agar tampak terpilih.
-const _activeBump = 0.06;
+/// Donut lebih tebal agar teks muat: luar 0.97r, dalam 0.50r (tebal 47% vs 35% sebelum)
+const _outerFactor = 0.97;
+const _innerFactor = 0.50;
+/// Sektor aktif menonjol keluar + luar & ke dalam agar ekstra tebal.
+const _activeOuterBump = 0.055;
+const _activeInnerBump = 0.04;
 
 const _needleColor = Color(0xFF37474F);
 const _hubColor = Color(0xFFE9A800);
@@ -86,25 +87,27 @@ class _GaugePainter extends CustomPainter {
     final repoOuter = Rect.fromCircle(center: center, radius: outerR);
     final gapHalf = _gap / 2;
 
-    // Donut gap-putih: 6 sektor cincin dengan celah 2°. Aktif menonjol + drop shadow.
+    // Donut tebal 47%: 6 sektor cincin gap 1.8°. Aktif menonjol keluar+ke dalam + bayangan.
     for (var i = 0; i < _sectors.length; i++) {
       final sector = _sectors[i];
       final start = _startAngles[i] + gapHalf;
       final sweep = _sweep;
       final isActive = sector.status == status;
-      final activeOuter = isActive ? outerR + radius * _activeBump : outerR;
+      final activeOuter = isActive ? outerR + radius * _activeOuterBump : outerR;
+      final activeInner = isActive ? (innerR - radius * _activeInnerBump).clamp(radius * 0.38, innerR) : innerR;
 
       final outerRect = Rect.fromCircle(center: center, radius: activeOuter);
-      final innerRect = Rect.fromCircle(center: center, radius: innerR);
+      final innerRect = Rect.fromCircle(center: center, radius: activeInner);
       final path = Path()
         ..arcTo(outerRect, start, sweep, false)
         ..arcTo(innerRect, start + sweep, -sweep, false)
         ..close();
       if (isActive) {
-        canvas.drawShadow(path, Colors.black.withValues(alpha: 0.28), 6, false);
+        canvas.drawShadow(path, Colors.black.withValues(alpha: 0.32), 10, true);
       }
       canvas.drawPath(path, Paint()..color = sector.status.color);
 
+      // Aktif: highlight tebal + glow dalam
       if (isActive) {
         final hi = Path()
           ..arcTo(outerRect, start, sweep, false)
@@ -114,51 +117,70 @@ class _GaugePainter extends CustomPainter {
           hi,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = radius * 0.022
-            ..color = Colors.white.withValues(alpha: 0.96),
+            ..strokeWidth = radius * 0.028
+            ..color = Colors.white.withValues(alpha: 1),
         );
+        canvas.drawPath(
+          hi,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = radius * 0.042
+            ..color = Colors.white.withValues(alpha: 0.22),
+        );
+      } else {
+        // Non-aktif diredupkan sedikit agar aktif pop
+        canvas.drawPath(path, Paint()..color = Colors.black.withValues(alpha: 0.08));
       }
 
-      // Satu kolom di midR: icon atas + label caps bawah. Aktif bump keluar, auto-fit label.
+      // Satu kolom di midR: icon atas + label caps bawah. Aktif lebih tebal jadi wedge jauh lebih lebar.
       final mid = start + sweep / 2;
       final dir = Offset(math.cos(mid), math.sin(mid));
-      final midR = (activeOuter + innerR) / 2;
+      final midR = (activeOuter + activeInner) / 2;
       final anchor = center + dir * midR;
       final isDark = sector.status == BpStatus.elevated;
       final fg = isDark ? AppColors.textPrimary : Colors.white;
       final shadow = isDark
           ? const <Shadow>[]
-          : [const Shadow(color: Colors.black38, blurRadius: 2)];
+          : [const Shadow(color: Colors.black45, blurRadius: 3)];
 
-      // Lebar wedge di midR untuk clamp font agar HIPOTENSI/DARURAT tidak terpotong.
       final wedgeAngle = sweep;
-      final wedgeWidth = 2 * midR * math.sin(wedgeAngle / 2) - radius * 0.10;
-      final baseLabelSize = size.width * 0.036;
-      final baseIconSize = size.width * 0.075;
-      final isActiveBoost = isActive ? 1.18 : 1.0;
-      var labelSize = baseLabelSize * isActiveBoost;
-      var iconSize = baseIconSize * isActiveBoost;
-      const iconLabelGap = 3.0;
+      // Donut lebih tebal + aktif lebih tebal = wedgeWidth +18% vs sebelum
+      final wedgeWidth = 2 * midR * math.sin(wedgeAngle / 2) - radius * 0.04;
+      final baseLabelSize = size.width * 0.038;
+      final baseIconSize = size.width * 0.076;
+      // Aktif boost kuat, namun non-aktif tetap 1.0 agar kontras
+      var labelSize = baseLabelSize * (isActive ? 1.26 : 1.0);
+      var iconSize = baseIconSize * (isActive ? 1.18 : 1.0);
+      // Aktif gap lebih lega, label lebih tebal
+      final iconLabelGap = isActive ? 4.0 : 3.0;
+      final labelWeight = isActive ? FontWeight.w900 : FontWeight.w800;
+      final labelSpacing = isActive ? 0.9 : 0.55;
 
-      // Shrink label agar muat dalam wedge (sangat efektif untuk sektor aktif yang midR lebih luar).
       TextPainter tpLabel = TextPainter(
-        text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: FontWeight.w800, letterSpacing: isActive ? 0.7 : 0.55, shadows: shadow)),
+        text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: labelWeight, letterSpacing: labelSpacing, shadows: shadow)),
         textDirection: TextDirection.ltr,
       )..layout();
-      while (tpLabel.width > wedgeWidth && labelSize > size.width * 0.024) {
-        labelSize -= 0.5;
+      // Pad 0.04 saja (donat tebal) + aktif midR luar jadi hampir tak perlu shrink; tetap clamp minimal 0.026
+      while (tpLabel.width > wedgeWidth && labelSize > size.width * 0.026) {
+        labelSize -= 0.4;
         tpLabel = TextPainter(
-          text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: FontWeight.w800, letterSpacing: isActive ? 0.7 : 0.55, shadows: shadow)),
+          text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: labelWeight, letterSpacing: labelSpacing, shadows: shadow)),
           textDirection: TextDirection.ltr,
         )..layout();
       }
-      if (isActive) iconSize = (baseIconSize * 1.22).clamp(size.width * 0.075, size.width * 0.095);
+      if (isActive) {
+        iconSize = (baseIconSize * 1.30).clamp(size.width * 0.076, size.width * 0.105);
+      }
       final colH = iconSize + iconLabelGap + tpLabel.height;
       final iconAt = anchor + Offset(0, -colH / 2 + iconSize / 2);
       final labelAt = anchor + Offset(0, colH / 2 - tpLabel.height / 2);
 
+      // Aktif: icon dengan halo putih tipis agar pop di atas warna
+      if (isActive && !isDark) {
+        _paintIcon(canvas, sector.icon, iconAt, iconSize + 2, Colors.white.withValues(alpha: 0.85), const []);
+      }
       _paintIcon(canvas, sector.icon, iconAt, iconSize, fg, shadow);
-      _paintTextAt(canvas, sector.label, labelAt, labelSize, fg, shadow);
+      _paintTextAt(canvas, sector.label, labelAt, labelSize, fg, shadow, weight: labelWeight, spacing: labelSpacing);
     }
 
     // Bingkai luar tipis.
@@ -172,7 +194,7 @@ class _GaugePainter extends CustomPainter {
     final dir = Offset(math.cos(activeMid), math.sin(activeMid));
     final perp = Offset(-dir.dy, dir.dx);
     final base = center + dir * (radius * 0.18);
-    final tip = center + dir * (radius * 0.54 + radius * _activeBump * 0.5);
+    final tip = center + dir * (radius * 0.54 + radius * _activeOuterBump * 0.5);
     final baseHalf = perp * (radius * 0.06);
 
     final needle = Path()
@@ -195,12 +217,14 @@ class _GaugePainter extends CustomPainter {
     Offset at,
     double fontSize,
     Color color,
-    List<Shadow> shadows,
-  ) {
+    List<Shadow> shadows, {
+    FontWeight weight = FontWeight.w800,
+    double spacing = 0.6,
+  }) {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.w800, letterSpacing: 0.6, shadows: shadows),
+        style: TextStyle(color: color, fontSize: fontSize, fontWeight: weight, letterSpacing: spacing, shadows: shadows),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
