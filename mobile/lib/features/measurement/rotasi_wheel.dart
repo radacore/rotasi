@@ -63,12 +63,9 @@ const _startAngles = <double>[
 const _gap = 1.5 * math.pi / 180;
 const _sweep = 2 * math.pi / 6 - _gap;
 
-/// Donat tebal 55%: luar 0.95r, dalam 0.40r (tebal 55% radius, was 47%)
+/// Donat tebal 55%: luar 0.95r, dalam 0.40r (tebal 55% radius)
 const _outerFactor = 0.95;
 const _innerFactor = 0.40;
-/// Sektor aktif menonjol keluar & ke dalam agar ekstra tebal dan pop.
-const _activeOuterBump = 0.04;
-const _activeInnerBump = 0.04;
 
 const _needleColor = Color(0xFF37474F);
 const _hubColor = Color(0xFFE9A800);
@@ -87,50 +84,25 @@ class _GaugePainter extends CustomPainter {
     final repoOuter = Rect.fromCircle(center: center, radius: outerR);
     final gapHalf = _gap / 2;
 
-    // Donut tebal 47%: 6 sektor cincin gap 1.8°. Aktif menonjol keluar+ke dalam + bayangan.
+    // Donut 55% — 6 sektor sama, tanpa bump aktif/cincin lengkung (sesuai request: samakan).
     for (var i = 0; i < _sectors.length; i++) {
       final sector = _sectors[i];
       final start = _startAngles[i] + gapHalf;
       final sweep = _sweep;
       final isActive = sector.status == status;
-      final activeOuter = isActive ? outerR + radius * _activeOuterBump : outerR;
-      final activeInner = isActive ? (innerR - radius * _activeInnerBump).clamp(radius * 0.38, innerR) : innerR;
 
-      final outerRect = Rect.fromCircle(center: center, radius: activeOuter);
-      final innerRect = Rect.fromCircle(center: center, radius: activeInner);
+      final outerRect = Rect.fromCircle(center: center, radius: outerR);
+      final innerRect = Rect.fromCircle(center: center, radius: innerR);
       final path = Path()
         ..arcTo(outerRect, start, sweep, false)
         ..arcTo(innerRect, start + sweep, -sweep, false)
         ..close();
-      if (isActive) {
-        canvas.drawShadow(path, Colors.black.withValues(alpha: 0.32), 10, true);
-      }
       canvas.drawPath(path, Paint()..color = sector.status.color);
 
-      // Aktif: cincin melengkung mengikuti donut (garis putih lengkung di tepi luar & dalam)
-      if (isActive) {
-        final outerArcR = activeOuter - radius * 0.014;
-        final innerArcR = activeInner + radius * 0.014;
-        // Busur luar & dalam mengikuti kelengkungan donat
-        canvas.drawArc(Rect.fromCircle(center: center, radius: outerArcR), start, sweep, false,
-            Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.016 ..color = Colors.white.withValues(alpha: 0.98) ..strokeCap = StrokeCap.round);
-        canvas.drawArc(Rect.fromCircle(center: center, radius: innerArcR), start, sweep, false,
-            Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.014 ..color = Colors.white.withValues(alpha: 0.92) ..strokeCap = StrokeCap.round);
-        // Outline penuh sektor aktif
-        final hi = Path()
-          ..arcTo(outerRect, start, sweep, false)
-          ..arcTo(innerRect, start + sweep, -sweep, false)
-          ..close();
-        canvas.drawPath(hi, Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.020 ..color = Colors.white.withValues(alpha: 0.95));
-        canvas.drawPath(hi, Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.036 ..color = Colors.white.withValues(alpha: 0.18));
-      } else {
-        canvas.drawPath(path, Paint()..color = Colors.black.withValues(alpha: 0.07));
-      }
-
-      // Satu kolom di midR: icon atas + label caps bawah. Aktif lebih tebal jadi wedge jauh lebih lebar.
+      // Penanda status terpilih: dot + label bold, bukan bump/garis melengkung (donat tetap rata).
       final mid = start + sweep / 2;
       final dir = Offset(math.cos(mid), math.sin(mid));
-      final midR = (activeOuter + activeInner) / 2;
+      final midR = (outerR + innerR) / 2;
       final anchor = center + dir * midR;
       final isDark = sector.status == BpStatus.elevated;
       final fg = isDark ? AppColors.textPrimary : Colors.white;
@@ -142,17 +114,16 @@ class _GaugePainter extends CustomPainter {
       final wedgeWidth = 2 * midR * math.sin(wedgeAngle / 2) - radius * 0.03;
       final baseLabelSize = size.width * 0.040;
       final baseIconSize = size.width * 0.078;
-      var labelSize = baseLabelSize * (isActive ? 1.28 : 1.0);
-      var iconSize = baseIconSize * (isActive ? 1.20 : 1.0);
+      var labelSize = baseLabelSize * (isActive ? 1.12 : 1.0);
+      var iconSize = baseIconSize * (isActive ? 1.10 : 1.0);
       final iconLabelGap = isActive ? 4.0 : 3.0;
       final labelWeight = isActive ? FontWeight.w900 : FontWeight.w800;
-      final labelSpacing = isActive ? 0.9 : 0.55;
+      final labelSpacing = isActive ? 0.85 : 0.55;
 
       TextPainter tpLabel = TextPainter(
         text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: labelWeight, letterSpacing: labelSpacing, shadows: shadow)),
         textDirection: TextDirection.ltr,
       )..layout();
-      // Pad 0.04 saja (donat tebal) + aktif midR luar jadi hampir tak perlu shrink; tetap clamp minimal 0.026
       while (tpLabel.width > wedgeWidth && labelSize > size.width * 0.026) {
         labelSize -= 0.4;
         tpLabel = TextPainter(
@@ -161,18 +132,23 @@ class _GaugePainter extends CustomPainter {
         )..layout();
       }
       if (isActive) {
-        iconSize = (baseIconSize * 1.30).clamp(size.width * 0.076, size.width * 0.105);
+        iconSize = (baseIconSize * 1.18).clamp(size.width * 0.076, size.width * 0.098);
       }
-      final colH = iconSize + iconLabelGap + tpLabel.height;
+      final colH = iconSize + iconLabelGap + tpLabel.height + (isActive ? 6 : 0);
       final iconAt = anchor + Offset(0, -colH / 2 + iconSize / 2);
-      final labelAt = anchor + Offset(0, colH / 2 - tpLabel.height / 2);
+      final labelAt = anchor + Offset(0, colH / 2 - tpLabel.height / 2 - (isActive ? 3 : 0));
 
-      // Aktif: icon dengan halo putih tipis agar pop di atas warna
       if (isActive && !isDark) {
-        _paintIcon(canvas, sector.icon, iconAt, iconSize + 2, Colors.white.withValues(alpha: 0.85), const []);
+        _paintIcon(canvas, sector.icon, iconAt, iconSize + 1.2, Colors.white.withValues(alpha: 0.85), const []);
       }
       _paintIcon(canvas, sector.icon, iconAt, iconSize, fg, shadow);
       _paintTextAt(canvas, sector.label, labelAt, labelSize, fg, shadow, weight: labelWeight, spacing: labelSpacing);
+      if (isActive) {
+        // Dot kecil di bawah label sebagai penanda halus (tanpa bump/cincin)
+        final dotAt = labelAt + Offset(0, tpLabel.height / 2 + 5);
+        canvas.drawCircle(dotAt, radius * 0.018, Paint()..color = Colors.white.withValues(alpha: 0.95));
+        canvas.drawCircle(dotAt, radius * 0.018, Paint()..style = PaintingStyle.stroke ..strokeWidth = 1 ..color = sector.status.color.withValues(alpha: 0.9));
+      }
     }
 
     // Bingkai luar tipis.
@@ -181,12 +157,12 @@ class _GaugePainter extends CustomPainter {
     // Isi pusat putih bersih.
     canvas.drawCircle(center, innerR - radius * 0.012, Paint()..color = Colors.white);
 
-    // Jarum menunjuk tengah sektor aktif (ujung ikut bump aktif).
+    // Jarum menunjuk tengah sektor aktif.
     final activeMid = _startAngles[status.index] + gapHalf + _sweep / 2;
     final dir = Offset(math.cos(activeMid), math.sin(activeMid));
     final perp = Offset(-dir.dy, dir.dx);
     final base = center + dir * (radius * 0.18);
-    final tip = center + dir * (radius * 0.54 + radius * _activeOuterBump * 0.5);
+    final tip = center + dir * (radius * 0.54);
     final baseHalf = perp * (radius * 0.06);
 
     final needle = Path()
