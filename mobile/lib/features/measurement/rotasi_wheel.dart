@@ -59,15 +59,15 @@ const _startAngles = <double>[
   2 * math.pi / 3,   // Darurat    : kiri-atas (pusat 150°)
 ];
 
-/// Gap 1.8° antar sektor + sweep agar ada celah putih halus.
-const _gap = 1.8 * math.pi / 180;
+/// Gap 1.5° antar sektor + sweep agar celah putih halus namun donat tampak tebal.
+const _gap = 1.5 * math.pi / 180;
 const _sweep = 2 * math.pi / 6 - _gap;
 
-/// Donut lebih tebal agar teks muat: luar 0.97r, dalam 0.50r (tebal 47% vs 35% sebelum)
-const _outerFactor = 0.97;
-const _innerFactor = 0.50;
-/// Sektor aktif menonjol keluar + luar & ke dalam agar ekstra tebal.
-const _activeOuterBump = 0.055;
+/// Donat tebal 55%: luar 0.95r, dalam 0.40r (tebal 55% radius, was 47%)
+const _outerFactor = 0.95;
+const _innerFactor = 0.40;
+/// Sektor aktif menonjol keluar & ke dalam agar ekstra tebal dan pop.
+const _activeOuterBump = 0.04;
 const _activeInnerBump = 0.04;
 
 const _needleColor = Color(0xFF37474F);
@@ -107,29 +107,24 @@ class _GaugePainter extends CustomPainter {
       }
       canvas.drawPath(path, Paint()..color = sector.status.color);
 
-      // Aktif: highlight tebal + glow dalam
+      // Aktif: cincin melengkung mengikuti donut (garis putih lengkung di tepi luar & dalam)
       if (isActive) {
+        final outerArcR = activeOuter - radius * 0.014;
+        final innerArcR = activeInner + radius * 0.014;
+        // Busur luar & dalam mengikuti kelengkungan donat
+        canvas.drawArc(Rect.fromCircle(center: center, radius: outerArcR), start, sweep, false,
+            Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.016 ..color = Colors.white.withValues(alpha: 0.98) ..strokeCap = StrokeCap.round);
+        canvas.drawArc(Rect.fromCircle(center: center, radius: innerArcR), start, sweep, false,
+            Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.014 ..color = Colors.white.withValues(alpha: 0.92) ..strokeCap = StrokeCap.round);
+        // Outline penuh sektor aktif
         final hi = Path()
           ..arcTo(outerRect, start, sweep, false)
           ..arcTo(innerRect, start + sweep, -sweep, false)
           ..close();
-        canvas.drawPath(
-          hi,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = radius * 0.028
-            ..color = Colors.white.withValues(alpha: 1),
-        );
-        canvas.drawPath(
-          hi,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = radius * 0.042
-            ..color = Colors.white.withValues(alpha: 0.22),
-        );
+        canvas.drawPath(hi, Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.020 ..color = Colors.white.withValues(alpha: 0.95));
+        canvas.drawPath(hi, Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.036 ..color = Colors.white.withValues(alpha: 0.18));
       } else {
-        // Non-aktif diredupkan sedikit agar aktif pop
-        canvas.drawPath(path, Paint()..color = Colors.black.withValues(alpha: 0.08));
+        canvas.drawPath(path, Paint()..color = Colors.black.withValues(alpha: 0.07));
       }
 
       // Satu kolom di midR: icon atas + label caps bawah. Aktif lebih tebal jadi wedge jauh lebih lebar.
@@ -144,14 +139,11 @@ class _GaugePainter extends CustomPainter {
           : [const Shadow(color: Colors.black45, blurRadius: 3)];
 
       final wedgeAngle = sweep;
-      // Donut lebih tebal + aktif lebih tebal = wedgeWidth +18% vs sebelum
-      final wedgeWidth = 2 * midR * math.sin(wedgeAngle / 2) - radius * 0.04;
-      final baseLabelSize = size.width * 0.038;
-      final baseIconSize = size.width * 0.076;
-      // Aktif boost kuat, namun non-aktif tetap 1.0 agar kontras
-      var labelSize = baseLabelSize * (isActive ? 1.26 : 1.0);
-      var iconSize = baseIconSize * (isActive ? 1.18 : 1.0);
-      // Aktif gap lebih lega, label lebih tebal
+      final wedgeWidth = 2 * midR * math.sin(wedgeAngle / 2) - radius * 0.03;
+      final baseLabelSize = size.width * 0.040;
+      final baseIconSize = size.width * 0.078;
+      var labelSize = baseLabelSize * (isActive ? 1.28 : 1.0);
+      var iconSize = baseIconSize * (isActive ? 1.20 : 1.0);
       final iconLabelGap = isActive ? 4.0 : 3.0;
       final labelWeight = isActive ? FontWeight.w900 : FontWeight.w800;
       final labelSpacing = isActive ? 0.9 : 0.55;
