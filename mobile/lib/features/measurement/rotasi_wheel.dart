@@ -66,6 +66,8 @@ const _sweep = 2 * math.pi / 6 - _gap;
 /// Donut tebal 35% radius: luar 0.92r, dalam 0.57r
 const _outerFactor = 0.92;
 const _innerFactor = 0.57;
+/// Sektor aktif menonjol keluar +6% radius agar tampak terpilih.
+const _activeBump = 0.06;
 
 const _needleColor = Color(0xFF37474F);
 const _hubColor = Color(0xFFE9A800);
@@ -84,59 +86,75 @@ class _GaugePainter extends CustomPainter {
     final repoOuter = Rect.fromCircle(center: center, radius: outerR);
     final gapHalf = _gap / 2;
 
-    // Donut gap-putih: 6 sektor cincin dengan celah 2°.
+    // Donut gap-putih: 6 sektor cincin dengan celah 2°. Aktif menonjol + drop shadow.
     for (var i = 0; i < _sectors.length; i++) {
       final sector = _sectors[i];
       final start = _startAngles[i] + gapHalf;
       final sweep = _sweep;
       final isActive = sector.status == status;
+      final activeOuter = isActive ? outerR + radius * _activeBump : outerR;
 
+      final outerRect = Rect.fromCircle(center: center, radius: activeOuter);
+      final innerRect = Rect.fromCircle(center: center, radius: innerR);
       final path = Path()
-        ..arcTo(repoOuter, start, sweep, false)
-        ..arcTo(Rect.fromCircle(center: center, radius: innerR), start + sweep, -sweep, false)
+        ..arcTo(outerRect, start, sweep, false)
+        ..arcTo(innerRect, start + sweep, -sweep, false)
         ..close();
+      if (isActive) {
+        canvas.drawShadow(path, Colors.black.withValues(alpha: 0.28), 6, false);
+      }
       canvas.drawPath(path, Paint()..color = sector.status.color);
 
       if (isActive) {
         final hi = Path()
-          ..arcTo(repoOuter, start, sweep, false)
-          ..arcTo(Rect.fromCircle(center: center, radius: innerR), start + sweep, -sweep, false)
+          ..arcTo(outerRect, start, sweep, false)
+          ..arcTo(innerRect, start + sweep, -sweep, false)
           ..close();
         canvas.drawPath(
           hi,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = radius * 0.018
-            ..color = Colors.white.withValues(alpha: 0.9),
+            ..strokeWidth = radius * 0.022
+            ..color = Colors.white.withValues(alpha: 0.96),
         );
       }
 
-      // Satu kolom di 0.74r: icon atas + label caps bawah (tanpa threshold).
+      // Satu kolom di midR: icon atas + label caps bawah. Aktif bump keluar, auto-fit label.
       final mid = start + sweep / 2;
       final dir = Offset(math.cos(mid), math.sin(mid));
-      final midR = (outerR + innerR) / 2;
+      final midR = (activeOuter + innerR) / 2;
       final anchor = center + dir * midR;
       final isDark = sector.status == BpStatus.elevated;
-      // Hipotensi pink gelap cukup untuk putih (kontras ok), Waspada kuning terang perlu gelap.
       final fg = isDark ? AppColors.textPrimary : Colors.white;
       final shadow = isDark
           ? const <Shadow>[]
           : [const Shadow(color: Colors.black38, blurRadius: 2)];
 
-      final labelSize = size.width * 0.036;
-      final iconSize = size.width * 0.075;
+      // Lebar wedge di midR untuk clamp font agar HIPOTENSI/DARURAT tidak terpotong.
+      final wedgeAngle = sweep;
+      final wedgeWidth = 2 * midR * math.sin(wedgeAngle / 2) - radius * 0.10;
+      final baseLabelSize = size.width * 0.036;
+      final baseIconSize = size.width * 0.075;
+      final isActiveBoost = isActive ? 1.18 : 1.0;
+      var labelSize = baseLabelSize * isActiveBoost;
+      var iconSize = baseIconSize * isActiveBoost;
       const iconLabelGap = 3.0;
 
-      // Ukur label agar kolom terpusat vertikal.
-      final tpLabel = TextPainter(
-        text: TextSpan(
-          text: sector.label,
-          style: TextStyle(color: fg, fontSize: labelSize, fontWeight: FontWeight.w800, letterSpacing: 0.6, shadows: shadow),
-        ),
+      // Shrink label agar muat dalam wedge (sangat efektif untuk sektor aktif yang midR lebih luar).
+      TextPainter tpLabel = TextPainter(
+        text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: FontWeight.w800, letterSpacing: isActive ? 0.7 : 0.55, shadows: shadow)),
         textDirection: TextDirection.ltr,
       )..layout();
+      while (tpLabel.width > wedgeWidth && labelSize > size.width * 0.024) {
+        labelSize -= 0.5;
+        tpLabel = TextPainter(
+          text: TextSpan(text: sector.label, style: TextStyle(color: fg, fontSize: labelSize, fontWeight: FontWeight.w800, letterSpacing: isActive ? 0.7 : 0.55, shadows: shadow)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+      }
+      if (isActive) iconSize = (baseIconSize * 1.22).clamp(size.width * 0.075, size.width * 0.095);
       final colH = iconSize + iconLabelGap + tpLabel.height;
-      final iconAt = anchor - const Offset(0, 0) + Offset(0, -colH / 2 + iconSize / 2);
+      final iconAt = anchor + Offset(0, -colH / 2 + iconSize / 2);
       final labelAt = anchor + Offset(0, colH / 2 - tpLabel.height / 2);
 
       _paintIcon(canvas, sector.icon, iconAt, iconSize, fg, shadow);
@@ -149,12 +167,12 @@ class _GaugePainter extends CustomPainter {
     // Isi pusat putih bersih.
     canvas.drawCircle(center, innerR - radius * 0.012, Paint()..color = Colors.white);
 
-    // Jarum menunjuk tengah sektor aktif (ujung 0.54r, pangkal 0.18r).
+    // Jarum menunjuk tengah sektor aktif (ujung ikut bump aktif).
     final activeMid = _startAngles[status.index] + gapHalf + _sweep / 2;
     final dir = Offset(math.cos(activeMid), math.sin(activeMid));
     final perp = Offset(-dir.dy, dir.dx);
     final base = center + dir * (radius * 0.18);
-    final tip = center + dir * (radius * 0.54);
+    final tip = center + dir * (radius * 0.54 + radius * _activeBump * 0.5);
     final baseHalf = perp * (radius * 0.06);
 
     final needle = Path()
