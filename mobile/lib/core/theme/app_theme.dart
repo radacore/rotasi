@@ -17,11 +17,15 @@ abstract final class AppColors {
   static const Color border = Color(0xFFCBD5E1);
   static const Color white = Color(0xFFFFFFFF);
 
-  /// Status tekanan darah (AHA 2025).
-  static const Color normal = Color(0xFF16A34A);
-  static const Color elevated = Color(0xFFCA8A04);
-  static const Color stage1 = Color(0xFFEA580C);
-  static const Color crisis = Color(0xFFDC2626);
+  /// Status tekanan darah ROTASI — 6 tier (revisi Beranda).
+  /// Hipotensi <90/60 #EE65C1, Normal <120/<80 #79B038, Waspada 120-129/<80 #FFD66E,
+  /// Berisiko 130-139/80-89 #F08E2B, Bahaya ≥140/≥90 #C85858, Darurat ≥160/110 #E23F25
+  static const Color hypotension = Color(0xFFEE65C1);
+  static const Color normal = Color(0xFF79B038);
+  static const Color elevated = Color(0xFFFFD66E);
+  static const Color stage1 = Color(0xFFF08E2B);
+  static const Color crisis = Color(0xFFC85858);
+  static const Color emergency = Color(0xFFE23F25);
 }
 
 abstract final class AppTheme {

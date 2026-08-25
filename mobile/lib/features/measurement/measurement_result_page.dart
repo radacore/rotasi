@@ -30,15 +30,6 @@ class MeasurementResultPage extends StatefulWidget {
 class _MeasurementResultPageState extends State<MeasurementResultPage> {
   bool _saving = false;
   ReferralSettings? _referral;
-  // Darurat = tetap 4 warna, tapi ≥160 atau ≥110 perlu aksi gawat darurat (booklet p.19)
-  bool get _isEmergency =>
-      widget.measurement.avgSystolic >= 160 ||
-      widget.measurement.avgDiastolic >= 110;
-  // Hipotensi: booklet p.9 ~ ≤90/60
-  bool get _isHypotension =>
-      widget.measurement.avgSystolic <= 90 ||
-      widget.measurement.avgDiastolic <= 60;
-
   @override
   void initState() {
     super.initState();
@@ -75,20 +66,23 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
     } catch (_) {}
   }
 
+  // Kini 6 tier: Darurat/Hipotensi sudah jadi status warna tersendiri,
+  // tetap simpan flag untuk card kontak tambahan.
+  bool get _isHypotension => widget.measurement.status == BpStatus.hypotension;
+  bool get _isEmergency => widget.measurement.status == BpStatus.emergency;
+
   String get _guidance {
-    if (_isHypotension) {
-      return 'Hipotensi (≤90/60 mmHg). Minum cukup (±2,5–3 L/hari), jangan bangun mendadak, tidur miring kiri. Jika sering pingsan/pusing hebat, segera hubungi bidan.';
-    }
-    if (_isEmergency) {
-      return 'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS, hubungi darurat & keluarga siaga.';
-    }
     switch (widget.measurement.status) {
+      case BpStatus.emergency:
+        return 'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS, hubungi darurat & keluarga siaga.';
       case BpStatus.crisis:
         return '≥140/90 mmHg (Buku KIA 2025). Segera ke faskes/layanan darurat.';
       case BpStatus.stage1:
         return 'Periksa ulang rutin dan sampaikan hasil ke bidan pada ANC berikutnya.';
       case BpStatus.elevated:
         return 'Kurangi garam, kelola stres, dan pantau rutin.';
+      case BpStatus.hypotension:
+        return 'Hipotensi (<90/60 mmHg). Minum cukup (±2,5–3 L/hari), jangan bangun mendadak, tidur miring kiri. Jika sering pingsan/pusing hebat, segera hubungi bidan.';
       case BpStatus.normal:
         return 'Tekanan darah normal. Pertahankan pola hidup sehat & ANC 6x.';
     }
@@ -172,7 +166,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
             const SizedBox(height: 12),
             Card(
               margin: EdgeInsets.zero,
-              color: (_isEmergency ? AppColors.crisis : AppColors.primary).withValues(alpha: 0.08),
+              color: (_isEmergency ? AppColors.emergency : AppColors.hypotension).withValues(alpha: 0.08),
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -182,7 +176,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
                       children: [
                         Icon(
                           _isEmergency ? Icons.emergency_outlined : Icons.water_drop_outlined,
-                          color: _isEmergency ? AppColors.crisis : AppColors.primary,
+                          color: _isEmergency ? AppColors.emergency : AppColors.hypotension,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -210,7 +204,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
                             icon: const Icon(Icons.call, size: 16),
                             label: Text(_effectiveReferral.emergencyPhone),
                             style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.crisis,
+                              backgroundColor: AppColors.emergency,
                               minimumSize: const Size(0, 36),
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,

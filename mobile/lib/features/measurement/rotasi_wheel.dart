@@ -41,20 +41,24 @@ class _Sector {
 }
 
 const _sectors = <_Sector>[
-  _Sector(BpStatus.normal, 'NORMAL', '<120/80', Icons.person),
+  _Sector(BpStatus.hypotension, 'HIPOTENSI', '<90/60', Icons.water_drop_outlined),
+  _Sector(BpStatus.normal, 'NORMAL', '<120/<80', Icons.person),
   _Sector(BpStatus.elevated, 'WASPADA', '120-129/<80', Icons.warning_amber_rounded),
   _Sector(BpStatus.stage1, 'BERISIKO', '130-139/80-89', Icons.favorite),
-  _Sector(BpStatus.crisis, 'BAHAYA', '>=140/>90', Icons.local_hospital),
+  _Sector(BpStatus.crisis, 'BAHAYA', '≥140/≥90', Icons.local_hospital),
+  _Sector(BpStatus.emergency, 'DARURAT', '≥160/110', Icons.emergency_outlined),
 ];
 
 const _startAngles = <double>[
-  -math.pi,      // Normal  : kiri
-  -math.pi / 2,  // Waspada : atas
-  0,             // Berisiko: kanan
-  math.pi / 2,   // Bahaya  : bawah
+  -math.pi,          // Hipotensi  : kiri-bawah (pusat 210°)
+  -2 * math.pi / 3,  // Normal     : atas (pusat 270°)
+  -math.pi / 3,      // Waspada    : kanan-atas (pusat 330°)
+  0,                 // Berisiko   : kanan (pusat 30°)
+  math.pi / 3,       // Bahaya     : bawah (pusat 90°)
+  2 * math.pi / 3,   // Darurat    : kiri-atas (pusat 150°)
 ];
 
-const _sweep = math.pi / 2;
+const _sweep = 2 * math.pi / 6;
 
 const _needleColor = Color(0xFF37474F);
 const _hubColor = Color(0xFFE9A800);
@@ -97,7 +101,7 @@ class _GaugePainter extends CustomPainter {
 
       final mid = start + _sweep / 2;
       final dir = Offset(math.cos(mid), math.sin(mid));
-      final isDark = sector.status == BpStatus.elevated;
+      final isDark = sector.status == BpStatus.elevated || sector.status == BpStatus.hypotension;
       final textColor =
           isDark ? AppColors.textPrimary : Colors.white;
       final shadow = [

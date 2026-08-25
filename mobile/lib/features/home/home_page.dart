@@ -157,7 +157,7 @@ class _StatusCard extends StatelessWidget {
         child: m == null
             ? Column(
                 children: [
-                  const Icon(Icons.favorite, color: AppColors.crisis, size: 48),
+                  const Icon(Icons.favorite, color: AppColors.primaryLight, size: 48),
                   const SizedBox(height: 8),
                   Text(
                     'Belum ada pengukuran',

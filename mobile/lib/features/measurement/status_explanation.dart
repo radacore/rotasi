@@ -73,6 +73,11 @@ class _Explanation {
 
 const _entries = <_Explanation>[
   _Explanation(
+    BpStatus.hypotension,
+    'PINK - HIPOTENSI',
+    'Tekanan darah rendah (<90/60). Cukupkan cairan ±2,5–3 L/hari, jangan bangun mendadak, tidur miring kiri. Jika sering pingsan/pusing hebat, segera hubungi bidan.',
+  ),
+  _Explanation(
     BpStatus.normal,
     'HIJAU - AMAN',
     'Tekanan darah normal. Teruskan pola hidup sehat, makan bergizi, dan kontrol rutin ke bidan sesuai jadwal.',
@@ -91,6 +96,11 @@ const _entries = <_Explanation>[
     BpStatus.crisis,
     'MERAH - BAHAYA',
     'Tekanan darah sangat tinggi (Hipertensi Derajat 2). Ibu harus segera ke Puskesmas atau RS, terutama jika disertai gejala berat.',
+  ),
+  _Explanation(
+    BpStatus.emergency,
+    'MERAH TUA - DARURAT',
+    'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS, hubungi 119 & keluarga siaga (Buku KIA 2025).',
   ),
 ];
 

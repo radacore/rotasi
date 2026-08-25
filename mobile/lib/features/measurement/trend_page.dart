@@ -100,7 +100,9 @@ class _TrendPageState extends State<TrendPage> {
 
   String _interpretation(List<_DayRow> days) {
     final last = days.last.status;
+    final emergencyDays = days.where((d) => d.status == BpStatus.emergency).length;
     final crisisDays = days.where((d) => d.status == BpStatus.crisis).length;
+    final hypoDays = days.where((d) => d.status == BpStatus.hypotension).length;
 
     String trendText = 'stabil';
     if (days.length >= 2) {
@@ -110,9 +112,15 @@ class _TrendPageState extends State<TrendPage> {
       trendText = diff >= 5 ? 'cenderung naik' : (diff <= -5 ? 'cenderung turun' : 'stabil');
     }
 
+    if (emergencyDays > 0) {
+      return 'Ada $emergencyDays hari kategori Darurat (≥160/110). Segera ke IGD/RS & hubungi 119.';
+    }
     if (crisisDays > 0) {
       return 'Ada $crisisDays hari masuk kategori Bahaya. '
           'Segera hubungi Puskesmas/RS untuk pemeriksaan lebih lanjut.';
+    }
+    if (hypoDays > 0 && last == BpStatus.hypotension) {
+      return 'Ada $hypoDays hari Hipotensi (<90/60). Cukupkan cairan & konsultasi bidan bila sering pingsan.';
     }
     if (trendText != 'stabil') {
       return 'Tekanan darah $trendText dalam ${days.length} hari terakhir. '
@@ -261,10 +269,12 @@ class _TrendPageState extends State<TrendPage> {
       BpTrendChart(
         title: 'Sistolik (atas)',
         bands: const [
-          ChartBand(min: 0, max: 120, color: AppColors.normal),
+          ChartBand(min: 0, max: 90, color: AppColors.hypotension),
+          ChartBand(min: 90, max: 120, color: AppColors.normal),
           ChartBand(min: 120, max: 130, color: AppColors.elevated),
           ChartBand(min: 130, max: 140, color: AppColors.stage1),
-          ChartBand(min: 140, max: 999, color: AppColors.crisis),
+          ChartBand(min: 140, max: 160, color: AppColors.crisis),
+          ChartBand(min: 160, max: 999, color: AppColors.emergency),
         ],
         series: [
           TrendSeries(name: 'Catatan', color: AppColors.primaryLight, values: sys),
@@ -275,9 +285,11 @@ class _TrendPageState extends State<TrendPage> {
       BpTrendChart(
         title: 'Diastolik (bawah)',
         bands: const [
-          ChartBand(min: 0, max: 80, color: AppColors.normal),
+          ChartBand(min: 0, max: 60, color: AppColors.hypotension),
+          ChartBand(min: 60, max: 80, color: AppColors.normal),
           ChartBand(min: 80, max: 90, color: AppColors.stage1),
-          ChartBand(min: 90, max: 999, color: AppColors.crisis),
+          ChartBand(min: 90, max: 110, color: AppColors.crisis),
+          ChartBand(min: 110, max: 999, color: AppColors.emergency),
         ],
         series: [
           TrendSeries(name: 'Catatan', color: AppColors.primaryLight, values: dia),
