@@ -80,22 +80,19 @@ class _TrendPageState extends State<TrendPage> {
     });
   }
 
-  String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
-
   List<_DayRow> _buildDays() {
-    final byDay = <String, _DayRow>{};
-    for (final m in _data) {
-      final key = _dayKey(m.measuredAt);
-      byDay[key] = _DayRow(
-        key: key,
-        label: '${key.split('-')[2]}/${key.split('-')[1]}',
-        sys: m.avgSystolic.toDouble(),
-        dia: m.avgDiastolic.toDouble(),
-      );
-    }
-    final days = byDay.values.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    return days;
+    // Per-pengukuran (bukan per-hari) agar tes berkali-kali di hari sama tidak hilang.
+    // Sebelumnya map byDay menimpa key 'yyyy-m-d' sehingga 5 tes hari ini -> 1 titik di tengah.
+    final sorted = _data.toList()
+      ..sort((a, b) => a.measuredAt.compareTo(b.measuredAt));
+    return sorted
+        .map((m) => _DayRow(
+              key: m.uuid,
+              label: DateFormat('dd/MM HH:mm').format(m.measuredAt.toLocal()),
+              sys: m.avgSystolic.toDouble(),
+              dia: m.avgDiastolic.toDouble(),
+            ))
+        .toList();
   }
 
   String _interpretation(List<_DayRow> days) {
@@ -418,54 +415,146 @@ class _DistributionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Distribusi Status',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
             Row(
               children: [
-                for (final s in BpStatus.values) ...[
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: s.color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '${counts[s] ?? 0}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: s.color,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            s.label,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
+                Text(
+                  'Distribusi Status',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.textSecondary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  if (s != BpStatus.values.last) const SizedBox(width: 8),
-                ],
+                  child: Text(
+                    '$total pengukuran',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 12),
+            // Bar proporsi 6 warna
+            if (total > 0)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Row(
+                  children: [
+                    for (final s in BpStatus.values)
+                      if ((counts[s] ?? 0) > 0)
+                        Expanded(
+                          flex: counts[s]!,
+                          child: Container(height: 8, color: s.color),
+                        ),
+                  ],
+                ),
+              ),
+            if (total > 0) const SizedBox(height: 12),
+            // Grid 3×2 — lega di HP kecil, tidak sesak 6 kolom
+            LayoutBuilder(
+              builder: (context, c) {
+                const gap = 8.0;
+                final colW = (c.maxWidth - gap) / 2;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final s in BpStatus.values)
+                      SizedBox(
+                        width: colW,
+                        child: _DistTile(status: s, count: counts[s] ?? 0, total: total),
+                      ),
+                  ],
+                );
+              },
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DistTile extends StatelessWidget {
+  const _DistTile({required this.status, required this.count, required this.total});
+
+  final BpStatus status;
+  final int count;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total == 0 ? 0 : (count * 100 / total).round();
+    final has = count > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: has ? status.color.withValues(alpha: 0.10) : AppColors.neutralLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: has ? status.color.withValues(alpha: 0.22) : AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: has ? status.color : AppColors.textSecondary.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(status.icon, size: 16, color: Colors.white),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '$count',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: has ? status.color : AppColors.textSecondary,
+                            fontSize: 16,
+                          ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '($pct%)',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                    ),
+                  ],
+                ),
+                Text(
+                  status.label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        letterSpacing: 0.4,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
