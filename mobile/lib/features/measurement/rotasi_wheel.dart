@@ -32,21 +32,22 @@ class RotasiWheel extends StatelessWidget {
 }
 
 class _Sector {
-  const _Sector(this.status, this.label, this.threshold, this.icon);
+  const _Sector(this.status, this.label, this.icon);
 
   final BpStatus status;
   final String label;
-  final String threshold;
   final IconData icon;
 }
 
+/// Opsi 1 minimal clean: roda hanya warna + icon + label caps.
+/// Ambang angka dipindah ke StatusExplanation/TrendPage agar roda tidak padat.
 const _sectors = <_Sector>[
-  _Sector(BpStatus.hypotension, 'HIPOTENSI', '<90/60', Icons.water_drop_outlined),
-  _Sector(BpStatus.normal, 'NORMAL', '<120/<80', Icons.person),
-  _Sector(BpStatus.elevated, 'WASPADA', '120-129/<80', Icons.warning_amber_rounded),
-  _Sector(BpStatus.stage1, 'BERISIKO', '130-139/80-89', Icons.favorite),
-  _Sector(BpStatus.crisis, 'BAHAYA', '≥140/≥90', Icons.local_hospital),
-  _Sector(BpStatus.emergency, 'DARURAT', '≥160/110', Icons.emergency_outlined),
+  _Sector(BpStatus.hypotension, 'HIPOTENSI', Icons.water_drop_outlined),
+  _Sector(BpStatus.normal, 'NORMAL', Icons.favorite),
+  _Sector(BpStatus.elevated, 'WASPADA', Icons.info_outline),
+  _Sector(BpStatus.stage1, 'BERISIKO', Icons.warning_amber_rounded),
+  _Sector(BpStatus.crisis, 'BAHAYA', Icons.error),
+  _Sector(BpStatus.emergency, 'DARURAT', Icons.emergency_outlined),
 ];
 
 const _startAngles = <double>[
@@ -58,7 +59,13 @@ const _startAngles = <double>[
   2 * math.pi / 3,   // Darurat    : kiri-atas (pusat 150°)
 ];
 
-const _sweep = 2 * math.pi / 6;
+/// Gap 2° antar sektor + sweep 58° (60°-gap) agar ada celah putih halus.
+const _gap = 2 * math.pi / 180;
+const _sweep = 2 * math.pi / 6 - _gap;
+
+/// Donut tebal 35% radius: luar 0.92r, dalam 0.57r
+const _outerFactor = 0.92;
+const _innerFactor = 0.57;
 
 const _needleColor = Color(0xFF37474F);
 const _hubColor = Color(0xFFE9A800);
@@ -72,87 +79,83 @@ class _GaugePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius * 0.92);
+    final outerR = radius * _outerFactor;
+    final innerR = radius * _innerFactor;
+    final repoOuter = Rect.fromCircle(center: center, radius: outerR);
+    final gapHalf = _gap / 2;
 
-    // Sektor warna.
+    // Donut gap-putih: 6 sektor cincin dengan celah 2°.
     for (var i = 0; i < _sectors.length; i++) {
       final sector = _sectors[i];
-      final start = _startAngles[i];
+      final start = _startAngles[i] + gapHalf;
+      final sweep = _sweep;
       final isActive = sector.status == status;
 
       final path = Path()
-        ..moveTo(center.dx, center.dy)
-        ..arcTo(rect, start, _sweep, false)
+        ..arcTo(repoOuter, start, sweep, false)
+        ..arcTo(Rect.fromCircle(center: center, radius: innerR), start + sweep, -sweep, false)
         ..close();
       canvas.drawPath(path, Paint()..color = sector.status.color);
 
       if (isActive) {
-        canvas.drawArc(
-          rect,
-          start,
-          _sweep,
-          false,
+        final hi = Path()
+          ..arcTo(repoOuter, start, sweep, false)
+          ..arcTo(Rect.fromCircle(center: center, radius: innerR), start + sweep, -sweep, false)
+          ..close();
+        canvas.drawPath(
+          hi,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = radius * 0.03
-            ..color = AppColors.white,
+            ..strokeWidth = radius * 0.018
+            ..color = Colors.white.withValues(alpha: 0.9),
         );
       }
 
-      final mid = start + _sweep / 2;
+      // Satu kolom di 0.74r: icon atas + label caps bawah (tanpa threshold).
+      final mid = start + sweep / 2;
       final dir = Offset(math.cos(mid), math.sin(mid));
-      final isDark = sector.status == BpStatus.elevated || sector.status == BpStatus.hypotension;
-      final textColor =
-          isDark ? AppColors.textPrimary : Colors.white;
-      final shadow = [
-        const Shadow(color: Colors.black38, blurRadius: 2),
-      ];
+      final midR = (outerR + innerR) / 2;
+      final anchor = center + dir * midR;
+      final isDark = sector.status == BpStatus.elevated;
+      // Hipotensi pink gelap cukup untuk putih (kontras ok), Waspada kuning terang perlu gelap.
+      final fg = isDark ? AppColors.textPrimary : Colors.white;
+      final shadow = isDark
+          ? const <Shadow>[]
+          : [const Shadow(color: Colors.black38, blurRadius: 2)];
 
-      _paintText(
-        canvas,
-        sector.threshold,
-        center + dir * (radius * 0.38),
-        size.width * 0.048,
-        textColor,
-        FontWeight.w800,
-        shadow,
-      );
-      _paintText(
-        canvas,
-        sector.label,
-        center + dir * (radius * 0.58),
-        size.width * 0.055,
-        textColor,
-        FontWeight.w800,
-        shadow,
-      );
-      _paintIcon(
-        canvas,
-        sector.icon,
-        center + dir * (radius * 0.8),
-        size.width * 0.11,
-        textColor,
-        shadow,
-      );
+      final labelSize = size.width * 0.036;
+      final iconSize = size.width * 0.075;
+      const iconLabelGap = 3.0;
+
+      // Ukur label agar kolom terpusat vertikal.
+      final tpLabel = TextPainter(
+        text: TextSpan(
+          text: sector.label,
+          style: TextStyle(color: fg, fontSize: labelSize, fontWeight: FontWeight.w800, letterSpacing: 0.6, shadows: shadow),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final colH = iconSize + iconLabelGap + tpLabel.height;
+      final iconAt = anchor - const Offset(0, 0) + Offset(0, -colH / 2 + iconSize / 2);
+      final labelAt = anchor + Offset(0, colH / 2 - tpLabel.height / 2);
+
+      _paintIcon(canvas, sector.icon, iconAt, iconSize, fg, shadow);
+      _paintTextAt(canvas, sector.label, labelAt, labelSize, fg, shadow);
     }
 
-    // Bingkai luar.
-    canvas.drawCircle(
-      center,
-      radius * 0.92,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = radius * 0.03
-        ..color = AppColors.white,
-    );
+    // Bingkai luar tipis.
+    canvas.drawCircle(center, outerR, Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.015 ..color = Colors.white);
+    canvas.drawCircle(center, innerR, Paint()..style = PaintingStyle.stroke ..strokeWidth = radius * 0.012 ..color = Colors.white.withValues(alpha: 0.7));
+    // Isi pusat putih bersih.
+    canvas.drawCircle(center, innerR - radius * 0.012, Paint()..color = Colors.white);
 
-    // Jarum penunjuk menuju tengah sektor aktif (setengah jari-jari).
-    final activeMid = _startAngles[status.index] + _sweep / 2;
+    // Jarum menunjuk tengah sektor aktif (ujung 0.54r, pangkal 0.18r).
+    final activeMid = _startAngles[status.index] + gapHalf + _sweep / 2;
     final dir = Offset(math.cos(activeMid), math.sin(activeMid));
     final perp = Offset(-dir.dy, dir.dx);
-    final base = center + dir * (radius * 0.16);
-    final tip = center + dir * (radius * 0.5);
-    final baseHalf = perp * (radius * 0.07);
+    final base = center + dir * (radius * 0.18);
+    final tip = center + dir * (radius * 0.54);
+    final baseHalf = perp * (radius * 0.06);
 
     final needle = Path()
       ..moveTo((base - baseHalf).dx, (base - baseHalf).dy)
@@ -160,10 +163,30 @@ class _GaugePainter extends CustomPainter {
       ..lineTo((base + baseHalf).dx, (base + baseHalf).dy)
       ..close();
     canvas.drawPath(needle, Paint()..color = _needleColor);
+    canvas.drawPath(needle, Paint()..style = PaintingStyle.stroke ..strokeWidth = 1 ..color = Colors.white.withValues(alpha: 0.9));
 
     // Poros kuning emas.
-    canvas.drawCircle(center, radius * 0.1, Paint()..color = _hubColor);
-    canvas.drawCircle(center, radius * 0.045, Paint()..color = AppColors.white);
+    canvas.drawCircle(center, radius * 0.09, Paint()..color = _hubColor);
+    canvas.drawCircle(center, radius * 0.06, Paint()..color = _hubColor.withValues(alpha: 0.9));
+    canvas.drawCircle(center, radius * 0.035, Paint()..color = Colors.white);
+  }
+
+  void _paintTextAt(
+    Canvas canvas,
+    String text,
+    Offset at,
+    double fontSize,
+    Color color,
+    List<Shadow> shadows,
+  ) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.w800, letterSpacing: 0.6, shadows: shadows),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, at - Offset(tp.width / 2, tp.height / 2));
   }
 
   void _paintText(
