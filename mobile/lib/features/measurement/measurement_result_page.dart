@@ -109,7 +109,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
         ),
       ),
     );
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).pop<bool>(true);
   }
 
   @override

@@ -54,8 +54,24 @@ class _MeasurementPageState extends State<MeasurementPage> {
     super.dispose();
   }
 
+  void _resetForm() {
+    _timer?.cancel();
+    _timer = null;
+    _s1Controller.clear();
+    _d1Controller.clear();
+    _s2Controller.clear();
+    _d2Controller.clear();
+    setState(() {
+      _r1Saved = false;
+      _countdownActive = false;
+      _r2Unlocked = false;
+      _remaining = _restSeconds;
+    });
+  }
+
   void _saveReading1() {
     if (!_validate(_s1Controller, _d1Controller)) return;
+    _timer?.cancel();
     setState(() {
       _r1Saved = true;
       _countdownActive = true;
@@ -64,11 +80,13 @@ class _MeasurementPageState extends State<MeasurementPage> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remaining <= 1) {
         timer.cancel();
+        if (!mounted) return;
         setState(() {
           _countdownActive = false;
           _r2Unlocked = true;
         });
       } else {
+        if (!mounted) return;
         setState(() => _remaining--);
       }
     });
@@ -87,7 +105,8 @@ class _MeasurementPageState extends State<MeasurementPage> {
       diastolic2: int.parse(_d2Controller.text),
     );
     if (!mounted) return;
-    Navigator.of(context).push(
+    final shouldCloseAfterSave = ModalRoute.of(context)?.isFirst == false;
+    final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => MeasurementResultPage(
           repository: _repository,
@@ -95,6 +114,13 @@ class _MeasurementPageState extends State<MeasurementPage> {
         ),
       ),
     );
+    if (!mounted) return;
+    if (saved == true) {
+      _resetForm();
+      if (shouldCloseAfterSave && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   bool _validate(TextEditingController sys, TextEditingController dia) {
