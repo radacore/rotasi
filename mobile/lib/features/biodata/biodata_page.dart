@@ -7,8 +7,10 @@ import '../registration/patient_repository.dart';
 
 /// Menu terpisah Biodata Ibu Hamil sesuai Buku KIA 2025.
 ///
-/// 4 section: Identitas, Faskes, Sosial, Obstetri.
-/// Simpan ke `patients` lokal + `PUT /api/v1/patient` (VPS sudah migrasi).
+/// Dipecah jadi 4 step (Identitas → Faskes → Sosial & Darah → Obstetri)
+/// agar selaras dengan Selamat Datang (satu Card per layar, tanpa scroll
+/// panjang). Tiap step divalidasi sebelum pindah; `Simpan Biodata` hanya
+/// di step terakhir. Simpan ke `patients` lokal + `PUT /api/v1/patient`.
 class BiodataPage extends StatefulWidget {
   const BiodataPage({super.key, this.repository});
 
@@ -20,10 +22,20 @@ class BiodataPage extends StatefulWidget {
 
 class _BiodataPageState extends State<BiodataPage> {
   late final PatientRepository _repo;
-  final _formKey = GlobalKey<FormState>();
+  final _stepKeys = List.generate(4, (_) => GlobalKey<FormState>());
+  final _scrollController = ScrollController();
   bool _loading = true;
   bool _saving = false;
+  int _currentStep = 0;
   Patient? _existing;
+
+  static const _stepTitles = ['Identitas', 'Faskes', 'Sosial & Darah', 'Obstetri'];
+  static const _stepDescs = [
+    'Data pribadi ibu sesuai identitas resmi.',
+    'Tempat ibu melakukan ANC rutin & rujukan.',
+    'Latar belakang pendidikan, pekerjaan, dan golongan darah.',
+    'Riwayat kehamilan dan kesehatan ibu.',
+  ];
 
   // Identitas
   final _nikC = TextEditingController();
@@ -61,6 +73,7 @@ class _BiodataPageState extends State<BiodataPage> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     for (final c in [
       _nikC,
       _jknC,
@@ -143,8 +156,21 @@ class _BiodataPageState extends State<BiodataPage> {
     });
   }
 
+  void _goTo(int step) {
+    _scrollController.jumpTo(0);
+    setState(() => _currentStep = step);
+  }
+
+  void _next() {
+    if (!_stepKeys[_currentStep].currentState!.validate()) return;
+    if (_currentStep < 3) {
+      _goTo(_currentStep + 1);
+    } else {
+      _save();
+    }
+  }
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
     final existing = _existing;
     if (existing == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi registrasi awal dulu di Data Ibu.')));
@@ -197,10 +223,168 @@ class _BiodataPageState extends State<BiodataPage> {
   InputDecoration _dec(String label, IconData icon, {String? hint}) => InputDecoration(
         labelText: label,
         hintText: hint,
+        labelStyle: const TextStyle(fontSize: 13),
+        floatingLabelStyle: const TextStyle(fontSize: 13, color: AppColors.primary),
         prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
         isDense: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.crisis),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.crisis, width: 1.5),
+        ),
       );
+
+  Widget _stepCard(List<Widget> children) => Card(
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: AppColors.border, width: 0.9),
+        ),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
+        ),
+      );
+
+  Widget _stepBody(Widget fields) => Form(
+        key: _stepKeys[_currentStep],
+        child: ListView(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          children: [
+            Text(
+              _stepTitles[_currentStep],
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _stepDescs[_currentStep],
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.35,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            fields,
+          ],
+        ),
+      );
+
+  Widget _buildStep(int step) {
+    switch (step) {
+      case 0:
+        return _stepBody(_stepCard([
+          TextFormField(
+            controller: _nikC,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
+            decoration: _dec('NIK (16 digit)', Icons.badge_outlined, hint: '1234567890123456'),
+            validator: (v) {
+              if (v == null || v.isEmpty) return null;
+              if (!RegExp(r'^[0-9]{16}$').hasMatch(v)) return 'NIK 16 digit angka';
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
+          TextFormField(controller: _jknC, decoration: _dec('No. JKN', Icons.health_and_safety_outlined, hint: '0001234567890')),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _nameC,
+            textCapitalization: TextCapitalization.words,
+            decoration: _dec('Nama ibu', Icons.person_outline),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib' : null,
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextFormField(controller: _birthPlaceC, decoration: _dec('Tempat lahir', Icons.location_on_outlined))),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextFormField(
+                controller: _birthDateC,
+                readOnly: true,
+                decoration: _dec('Tanggal lahir', Icons.cake_outlined),
+                onTap: _pickBirthDate,
+              ),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _ageC,
+            keyboardType: TextInputType.number,
+            decoration: _dec('Usia ibu (tahun)', Icons.cake_outlined),
+            validator: (v) {
+              final n = int.tryParse(v ?? '');
+              if (n == null || n < 12 || n > 55) return '12–55';
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
+          TextFormField(controller: _addressC, maxLines: 2, decoration: _dec('Alamat rumah', Icons.home_outlined)),
+          const SizedBox(height: 10),
+          TextFormField(controller: _phoneC, keyboardType: TextInputType.phone, decoration: _dec('No. telp/WA', Icons.phone_outlined)),
+        ]));
+      case 1:
+        return _stepBody(_stepCard([
+          TextFormField(controller: _faskesTk1C, decoration: _dec('Faskes TK1', Icons.local_hospital_outlined)),
+          const SizedBox(height: 10),
+          TextFormField(controller: _faskesRujukanC, decoration: _dec('Faskes rujukan', Icons.medical_services_outlined)),
+        ]));
+      case 2:
+        return _stepBody(_stepCard([
+          TextFormField(controller: _educationC, decoration: _dec('Pendidikan', Icons.school_outlined, hint: 'SMA / S1 ...')),
+          const SizedBox(height: 10),
+          TextFormField(controller: _occupationC, decoration: _dec('Pekerjaan', Icons.work_outline, hint: 'IRT / PNS ...')),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<BloodType>(
+            initialValue: _bloodType,
+            decoration: _dec('Golongan darah', Icons.water_drop_outlined),
+            items: BloodType.values.map((b) => DropdownMenuItem(value: b, child: Text(b.label))).toList(),
+            onChanged: (v) => setState(() => _bloodType = v),
+          ),
+        ]));
+      case 3:
+      default:
+        return _stepBody(_stepCard([
+          Row(children: [
+            Expanded(child: TextFormField(controller: _gravidaC, keyboardType: TextInputType.number, decoration: _dec('Kehamilan ke- (G)', Icons.numbers))),
+            const SizedBox(width: 8),
+            Expanded(child: TextFormField(controller: _paraC, keyboardType: TextInputType.number, decoration: _dec('Anak ke- (P)', Icons.numbers))),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextFormField(controller: _livingC, keyboardType: TextInputType.number, decoration: _dec('Anak hidup', Icons.child_care))),
+            const SizedBox(width: 8),
+            Expanded(child: TextFormField(controller: _miscarriageC, keyboardType: TextInputType.number, decoration: _dec('Keguguran', Icons.warning_amber_rounded))),
+          ]),
+          const SizedBox(height: 10),
+          TextFormField(controller: _diseaseC, maxLines: 3, decoration: _dec('Riwayat penyakit ibu', Icons.medical_information_outlined, hint: 'Hipertensi, DM, dll — kosongkan bila tidak ada')),
+        ]));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,139 +408,73 @@ class _BiodataPageState extends State<BiodataPage> {
         ),
       );
     }
+    final isLast = _currentStep == 3;
     return Scaffold(
+      backgroundColor: AppColors.sand,
       appBar: AppBar(title: const Text('Biodata KIA')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Column(
           children: [
-            Card(
-              margin: EdgeInsets.zero,
-              color: AppColors.skyLight,
-              child: const Padding(
-                padding: EdgeInsets.all(12),
-                child: Row(children: [
-                  Icon(Icons.menu_book_outlined, color: AppColors.primaryLight, size: 18),
-                  SizedBox(width: 8),
-                  Expanded(child: Text('Sesuai Buku KIA — NIK 16 digit, Faskes TK1/rujukan, TTL, darah, gravida dll.', style: TextStyle(fontSize: 12, height: 1.35))),
-                ]),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Lengkapi Biodata', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  Text('Step ${_currentStep + 1}/4', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            _Section(title: 'Identitas', children: [
-              TextFormField(
-                controller: _nikC,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
-                decoration: _dec('NIK (16 digit)', Icons.badge_outlined, hint: '1234567890123456'),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  if (!RegExp(r'^[0-9]{16}$').hasMatch(v)) return 'NIK 16 digit angka';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(controller: _jknC, decoration: _dec('No. JKN', Icons.health_and_safety_outlined, hint: '0001234567890')),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _nameC,
-                textCapitalization: TextCapitalization.words,
-                decoration: _dec('Nama ibu', Icons.person_outline),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib' : null,
-              ),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: TextFormField(controller: _birthPlaceC, decoration: _dec('Tempat lahir', Icons.location_on_outlined))),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _birthDateC,
-                    readOnly: true,
-                    decoration: _dec('Tanggal lahir', Icons.cake_outlined),
-                    onTap: _pickBirthDate,
-                  ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: (_currentStep + 1) / 4,
+                  minHeight: 6,
+                  backgroundColor: AppColors.border,
+                  valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                 ),
-              ]),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _ageC,
-                keyboardType: TextInputType.number,
-                decoration: _dec('Usia ibu (tahun)', Icons.cake_outlined),
-                validator: (v) {
-                  final n = int.tryParse(v ?? '');
-                  if (n == null || n < 12 || n > 55) return '12–55';
-                  return null;
-                },
               ),
-              const SizedBox(height: 10),
-              TextFormField(controller: _addressC, maxLines: 2, decoration: _dec('Alamat rumah', Icons.home_outlined)),
-              const SizedBox(height: 10),
-              TextFormField(controller: _phoneC, keyboardType: TextInputType.phone, decoration: _dec('No. telp/WA', Icons.phone_outlined)),
-            ]),
-            const SizedBox(height: 12),
-            _Section(title: 'Faskes', children: [
-              TextFormField(controller: _faskesTk1C, decoration: _dec('Faskes TK1', Icons.local_hospital_outlined)),
-              const SizedBox(height: 10),
-              TextFormField(controller: _faskesRujukanC, decoration: _dec('Faskes rujukan', Icons.medical_services_outlined)),
-            ]),
-            const SizedBox(height: 12),
-            _Section(title: 'Sosial & Darah', children: [
-              TextFormField(controller: _educationC, decoration: _dec('Pendidikan', Icons.school_outlined, hint: 'SMA / S1 ...')),
-              const SizedBox(height: 10),
-              TextFormField(controller: _occupationC, decoration: _dec('Pekerjaan', Icons.work_outline, hint: 'IRT / PNS ...')),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<BloodType>(
-                initialValue: _bloodType,
-                decoration: _dec('Golongan darah', Icons.water_drop_outlined),
-                items: BloodType.values.map((b) => DropdownMenuItem(value: b, child: Text(b.label))).toList(),
-                onChanged: (v) => setState(() => _bloodType = v),
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: KeyedSubtree(
+                  key: ValueKey<int>(_currentStep),
+                  child: _buildStep(_currentStep),
+                ),
               ),
-            ]),
-            const SizedBox(height: 12),
-            _Section(title: 'Obstetri', children: [
-              Row(children: [
-                Expanded(child: TextFormField(controller: _gravidaC, keyboardType: TextInputType.number, decoration: _dec('Kehamilan ke- (G)', Icons.numbers))),
-                const SizedBox(width: 8),
-                Expanded(child: TextFormField(controller: _paraC, keyboardType: TextInputType.number, decoration: _dec('Anak ke- (P)', Icons.numbers))),
-              ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: TextFormField(controller: _livingC, keyboardType: TextInputType.number, decoration: _dec('Anak hidup', Icons.child_care))),
-                const SizedBox(width: 8),
-                Expanded(child: TextFormField(controller: _miscarriageC, keyboardType: TextInputType.number, decoration: _dec('Keguguran', Icons.warning_amber_rounded))),
-              ]),
-              const SizedBox(height: 10),
-              TextFormField(controller: _diseaseC, maxLines: 3, decoration: _dec('Riwayat penyakit ibu', Icons.medical_information_outlined, hint: 'Hipertensi, DM, dll — kosongkan bila tidak ada')),
-            ]),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 48,
-              child: ElevatedButton(onPressed: _saving ? null : _save, child: _saving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Simpan Biodata')),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  if (_currentStep > 0) ...[
+                    OutlinedButton(
+                      onPressed: _saving ? null : () => _goTo(_currentStep - 1),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(108, 48)),
+                      child: const Text('Kembali'),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _next,
+                      child: _saving
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(isLast ? 'Simpan Biodata' : 'Selanjutnya'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
-          const Divider(height: 16),
-          ...children,
-        ]),
       ),
     );
   }

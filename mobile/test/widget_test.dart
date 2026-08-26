@@ -36,6 +36,7 @@ import 'package:rotasi_mobile/core/notifications/notification_scheduler.dart';
 import 'package:rotasi_mobile/features/registration/patient.dart';
 import 'package:rotasi_mobile/features/registration/patient_repository.dart';
 import 'package:rotasi_mobile/features/registration/registration_page.dart';
+import 'package:rotasi_mobile/features/biodata/biodata_page.dart';
 import 'package:rotasi_mobile/features/home/home_shell.dart';
 import 'package:rotasi_mobile/features/home/home_page.dart';
 import 'package:rotasi_mobile/features/home/more_page.dart';
@@ -63,6 +64,9 @@ class FakePatientRepository extends PatientRepository {
     syncCount++;
     return syncResult;
   }
+
+  @override
+  Future<Patient?> fetchRemote() async => null;
 
   @override
   Future<void> markSynced(String uuid) async {}
@@ -253,6 +257,76 @@ void main() {
       expect(repo.stored!.historyType, HistoryType.none);
       expect(repo.stored!.riskLevel, RiskLevel.unknown);
       expect(find.text('Lengkapi Biodata KIA'), findsOneWidget);
+    });
+  });
+
+  group('BiodataPage wizard 4-step', () {
+    Future<void> pumpBiodata(WidgetTester tester, PatientRepository repo) async {
+      tester.view.physicalSize = const Size(900, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(home: BiodataPage(repository: repo)));
+      await tester.pumpAndSettle();
+    }
+
+    Patient existing() => Patient.newLocal(name: 'Sitti', age: 25, heightCm: 155, weightKg: 52);
+
+    testWidgets('mulai dari step 1 Identitas tanpa tombol Kembali', (tester) async {
+      await pumpBiodata(tester, FakePatientRepository(initial: existing()));
+
+      expect(find.text('Step 1/4'), findsOneWidget);
+      expect(find.text('NIK (16 digit)'), findsOneWidget);
+      expect(find.text('Faskes TK1'), findsNothing);
+      expect(find.text('Kembali'), findsNothing);
+      expect(find.text('Selanjutnya'), findsOneWidget);
+    });
+
+    testWidgets('NIK tidak valid menahan di step 1', (tester) async {
+      await pumpBiodata(tester, FakePatientRepository(initial: existing()));
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'NIK (16 digit)'), '123');
+      await tester.tap(find.text('Selanjutnya'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('NIK 16 digit angka'), findsOneWidget);
+      expect(find.text('Step 1/4'), findsOneWidget);
+    });
+
+    testWidgets('selesaikan semua step lalu Simpan Biodata', (tester) async {
+      final repo = FakePatientRepository(initial: existing());
+      await pumpBiodata(tester, repo);
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'NIK (16 digit)'), '3201012308920001');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Nama ibu'), 'Sitti Nur');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Usia ibu (tahun)'), '26');
+      await tester.tap(find.text('Selanjutnya'));
+      await tester.pumpAndSettle();
+      expect(find.text('Step 2/4'), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Faskes TK1'), 'Puskesmas Kota');
+      await tester.tap(find.text('Selanjutnya'));
+      await tester.pumpAndSettle();
+      expect(find.text('Step 3/4'), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Pendidikan'), 'S1');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Pekerjaan'), 'IRT');
+      await tester.tap(find.text('Selanjutnya'));
+      await tester.pumpAndSettle();
+      expect(find.text('Step 4/4'), findsOneWidget);
+
+      await tester.tap(find.text('Kembali'));
+      await tester.pumpAndSettle();
+      expect(find.text('Step 3/4'), findsOneWidget);
+      await tester.tap(find.text('Selanjutnya'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Simpan Biodata'));
+      await tester.pumpAndSettle();
+
+      expect(repo.saveCount, 1);
+      expect(repo.stored!.nik, '3201012308920001');
+      expect(repo.stored!.faskesTk1, 'Puskesmas Kota');
+      expect(repo.stored!.education, 'S1');
     });
   });
 
