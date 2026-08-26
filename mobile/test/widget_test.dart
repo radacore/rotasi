@@ -213,7 +213,7 @@ void main() {
       final repo = FakePatientRepository();
       await pumpRegistration(tester, repo);
 
-      await tester.tap(find.text('Simpan dan Mulai'));
+      await tester.tap(find.text('Mulai'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nama wajib diisi'), findsOneWidget);
@@ -227,35 +227,32 @@ void main() {
       await pumpRegistration(tester, repo, bpRepo: bpRepo);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Sitti');
-      await tester.enterText(find.byType(TextFormField).at(1), '28');
-      await tester.enterText(find.byType(TextFormField).at(3), '155');
-      await tester.enterText(find.byType(TextFormField).at(4), '52');
-      await tester.tap(find.text('Simpan dan Mulai'));
+      await tester.enterText(find.byType(TextFormField).at(1), '08123456789');
+      await tester.tap(find.text('Mulai'));
       await tester.pumpAndSettle();
 
       expect(repo.saveCount, 1);
       expect(repo.syncCount, 1);
       expect(find.text('Halo, Sitti,', findRichText: true), findsOneWidget);
       expect(find.text('semoga sehat selalu'), findsOneWidget);
+      // Welcome minimal pakai default 25/155/52; biodata lengkap di Beranda
+      expect(repo.stored!.age, 25);
+      expect(find.text('Lengkapi Biodata KIA'), findsOneWidget);
     });
 
-    testWidgets('riwayat hipertensi tersimpan ke model', (tester) async {
+    testWidgets('welcome minimal tidak minta riwayat — biodata di Beranda', (tester) async {
       final repo = FakePatientRepository();
       final bpRepo = FakeBpRepository();
       await pumpRegistration(tester, repo, bpRepo: bpRepo);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Rahma');
-      await tester.enterText(find.byType(TextFormField).at(1), '24');
-      await tester.enterText(find.byType(TextFormField).at(3), '160');
-      await tester.enterText(find.byType(TextFormField).at(4), '55');
-      await tester.tap(find.text('Hipertensi'));
-      await tester.tap(find.text('Simpan dan Mulai'));
+      await tester.enterText(find.byType(TextFormField).at(1), '0812000111');
+      await tester.tap(find.text('Mulai'));
       await tester.pumpAndSettle();
 
-      expect(repo.stored!.historyType, HistoryType.hypertension);
-      // Pasien baru tanpa tensi -> unknown sampai tensi pertama; history tetap tersimpan
-      expect(repo.stored!.historyType, HistoryType.hypertension);
+      expect(repo.stored!.historyType, HistoryType.none);
       expect(repo.stored!.riskLevel, RiskLevel.unknown);
+      expect(find.text('Lengkapi Biodata KIA'), findsOneWidget);
     });
   });
 

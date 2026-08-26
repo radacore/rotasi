@@ -6,10 +6,11 @@ import '../measurement/bp_repository.dart';
 import 'patient.dart';
 import 'patient_repository.dart';
 
-/// Alur registrasi biodata ibu (FR-01).
+/// Welcome minimal (opsi 1) — hanya Nama + WA.
 ///
-/// Data tersimpan lokal dulu (offline-first); sinkronisasi dilakukan
-/// best-effort saat online. Setelah selesai masuk ke Beranda.
+/// Data lengkap KIA (NIK, Faskes, darah, gravida, BMI pra-hamil) diisi
+/// nanti via tombol di Beranda → Biodata KIA. Default age/height/weight
+/// aman agar Patient tetap valid & sinkron langsung.
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key, this.repository, this.bpRepository});
 
@@ -25,15 +26,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   late final PatientRepository _repository;
 
   final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _gestationalWeeksController = TextEditingController();
-  final _systolicController = TextEditingController();
-  final _diastolicController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  HistoryType _historyType = HistoryType.none;
   bool _submitting = false;
 
   @override
@@ -45,12 +39,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _ageController.dispose();
-    _heightController.dispose();
-    _weightController.dispose();
-    _gestationalWeeksController.dispose();
-    _systolicController.dispose();
-    _diastolicController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -58,26 +46,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final int? gestationalWeeks = _gestationalWeeksController.text.isEmpty
-        ? null
-        : int.parse(_gestationalWeeksController.text);
-
     final patient = Patient.newLocal(
       name: _nameController.text.trim(),
-      age: int.parse(_ageController.text),
-      heightCm: double.parse(_heightController.text),
-      weightKg: double.parse(_weightController.text),
-      gestationalWeeks: gestationalWeeks,
-      lastSystolic: _systolicController.text.isEmpty
-          ? null
-          : int.parse(_systolicController.text),
-      lastDiastolic: _diastolicController.text.isEmpty
-          ? null
-          : int.parse(_diastolicController.text),
-      historyType: _historyType,
-      phone: _phoneController.text.trim().isEmpty
-          ? null
-          : _phoneController.text.trim(),
+      age: 25,
+      heightCm: 155,
+      weightKg: 52,
+      historyType: HistoryType.none,
+      phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
     );
 
     setState(() => _submitting = true);
@@ -158,7 +133,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Lengkapi biodata ibu untuk mulai menggunakan\nAplikasi Rotasi',
+                'Masukkan nama untuk memulai.\nLengkapi Biodata KIA & BMI di Beranda setelahnya.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
@@ -184,136 +159,35 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         textCapitalization: TextCapitalization.words,
                         style: const TextStyle(fontSize: 14),
                         decoration: _dec('Nama ibu', Icons.person_outline),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _ageController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Usia (tahun)', Icons.cake_outlined),
-                        validator: (v) {
-                          final n = int.tryParse(v ?? '');
-                          if (n == null || n < 12 || n > 55) return 'Usia 12–55 tahun';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _gestationalWeeksController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Usia kehamilan (minggu)', Icons.pregnant_woman_outlined),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return null;
-                          final n = int.tryParse(v);
-                          if (n == null || n < 0 || n > 45) return '0–45 minggu';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _heightController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Tinggi badan (cm)', Icons.height_outlined),
-                        validator: (v) {
-                          final n = double.tryParse(v ?? '');
-                          if (n == null || n < 100 || n > 250) return '100–250 cm';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _weightController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Berat badan (kg)', Icons.monitor_weight_outlined),
-                        validator: (v) {
-                          final n = double.tryParse(v ?? '');
-                          if (n == null || n < 30 || n > 200) return '30–200 kg';
-                          return null;
-                        },
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        'Tekanan darah terakhir (opsional)',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _systolicController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Sistolik (atas)', Icons.favorite_border),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return null;
-                          final n = int.tryParse(v);
-                          if (n == null || n < 50 || n > 180) return '50–180';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _diastolicController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: _dec('Diastolik (bawah)', Icons.favorite_border),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return null;
-                          final n = int.tryParse(v);
-                          if (n == null || n < 30 || n > 120) return '30–120';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Riwayat hipertensi',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: HistoryType.values.map((type) {
-                          final selected = type == _historyType;
-                          return ChoiceChip(
-                            label: Text(type.label, style: const TextStyle(fontSize: 12)),
-                            selected: selected,
-                            selectedColor: AppColors.primary,
-                            backgroundColor: Colors.white,
-                            side: BorderSide(
-                              color: selected ? AppColors.primary : AppColors.border,
-                            ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                            labelStyle: TextStyle(
-                              color: selected ? AppColors.white : AppColors.textPrimary,
-                              fontSize: 12,
-                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                            ),
-                            onSelected: (_) => setState(() => _historyType = type),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(fontSize: 14),
                         decoration: _dec('Nomor WhatsApp (opsional)', Icons.phone_outlined),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.skyLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline, size: 18, color: AppColors.primaryLight),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'NIK, Faskes, golongan darah, kehamilan ke-/BMI pra-hamil bisa dilengkapi nanti lewat tombol di Beranda.',
+                                style: TextStyle(fontSize: 11, height: 1.35, color: AppColors.textSecondary),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -335,7 +209,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                         )
-                      : const Text('Simpan dan Mulai'),
+                      : const Text('Mulai'),
                 ),
               ),
             ],

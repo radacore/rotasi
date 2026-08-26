@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../biodata/biodata_page.dart';
 import '../measurement/bp_measurement.dart';
 import '../measurement/bp_repository.dart';
 import '../measurement/measurement_page.dart';
@@ -86,6 +87,26 @@ class _HomePageState extends State<HomePage> {
     _load();
   }
 
+  Future<void> _openBiodata() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => BiodataPage(repository: _repository)),
+    );
+    if (!mounted) return;
+    _load();
+  }
+
+  bool get _needsBiodata {
+    final p = _patient;
+    if (p == null) return false;
+    // Minimal KIA dianggap belum lengkap bila NIK / darah / gravida / BMI pra-hamil kosong
+    return (p.nik == null || p.nik!.isEmpty) ||
+        p.bloodType == null ||
+        p.gravida == null ||
+        p.prePregnancyWeight == null ||
+        p.faskesTk1 == null ||
+        p.address == null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,6 +152,8 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
+          if (_patient != null && _needsBiodata) _IncompleteBiodataCard(onTap: _openBiodata),
+          if (_patient != null && _needsBiodata) const SizedBox(height: 12),
           _StatusCard(measurement: _lastMeasurement),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -138,6 +161,62 @@ class _HomePageState extends State<HomePage> {
             child: const Text('Ukur Tensi'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _IncompleteBiodataCard extends StatelessWidget {
+  const _IncompleteBiodataCard({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: AppColors.stage1.withValues(alpha: 0.12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppColors.stage1.withValues(alpha: 0.35)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: AppColors.stage1, borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.badge_outlined, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Lengkapi Biodata KIA',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text('NIK, Faskes, golongan darah & BMI pra-hamil diperlukan untuk skrining risiko.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, height: 1.3)),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton.icon(
+                    onPressed: onTap,
+                    icon: const Icon(Icons.arrow_forward, size: 16),
+                    label: const Text('Lengkapi Sekarang', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.stage1,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ),
       ),
     );
   }
