@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/sync/sync_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../biodata/biodata_page.dart';
+import '../bmi/bmi_page.dart';
 import '../breathing/breathing_page.dart';
 import '../measurement/bp_repository.dart';
 import '../midwife/midwife_page.dart';
@@ -86,6 +88,20 @@ class _MorePageState extends State<MorePage> {
                 bpRepository: bpRepo,
               ),
             ),
+          ),
+          const SizedBox(height: 12),
+          _MoreTile(
+            icon: Icons.badge_outlined,
+            title: 'Biodata KIA',
+            subtitle: 'NIK, JKN, Faskes, TTL, darah, gravida — Buku KIA.',
+            onTap: () => _push(context, BiodataPage(repository: patientRepository)),
+          ),
+          const SizedBox(height: 12),
+          _MoreTile(
+            icon: Icons.monitor_weight_outlined,
+            title: 'BMI Ibu Hamil',
+            subtitle: 'BMI pra-hamil 18,5–24,9 & batas kenaikan berat.',
+            onTap: () => _push(context, BmiPage(repository: patientRepository)),
           ),
           const SizedBox(height: 20),
           const _CategoryTitle('Kesehatan & Kebiasaan'),

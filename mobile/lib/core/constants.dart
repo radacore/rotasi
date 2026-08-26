@@ -16,6 +16,7 @@ abstract final class AppConfig {
 abstract final class ApiEndpoints {
   static const String deviceRegister = '/device/register';
   static const String patient = '/patient';
+  static const String patientBmi = '/patient/bmi';
   static const String sync = '/sync';
   static const String syncBp = '/sync/bp';
   static const String syncSymptom = '/sync/symptom';

@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static const _dbName = 'rotasi.db';
-  static const _dbVersion = 9;
+  static const _dbVersion = 10;
 
   static Database? _db;
 
@@ -86,6 +86,36 @@ class AppDatabase {
       // aman dipertahankan; promosi unknown->low/medium/high dilakukan di
       // BpRepository saat tensi pertama tersimpan.
     }
+    if (oldVersion < 10) {
+      // Biodata KIA + BMI pra-hamil (VPS migration 2026_08_25_add_biodata_to_patients)
+      // Nullable agar data lama tetap valid; NIK unique ditangani di app layer.
+      await _addColumnIfMissing(db, 'patients', 'nik', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'jkn_no', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'faskes_tk1', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'faskes_rujukan', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'birth_place', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'birth_date', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'education', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'occupation', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'address', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'blood_type', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'gravida', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'para', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'living_children', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'miscarriage_count', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'disease_history', 'TEXT');
+      await _addColumnIfMissing(db, 'patients', 'pre_pregnancy_weight', 'REAL');
+      await _addColumnIfMissing(db, 'patients', 'pre_pregnancy_height', 'REAL');
+    }
+  }
+
+  static Future<void> _addColumnIfMissing(
+    Database db, String table, String column, String type) async {
+    final cols = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = cols.any((c) => c['name'] == column);
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
   }
 
   static Future<void> _createPatients(Database db) async {
@@ -105,6 +135,23 @@ class AppDatabase {
         risk_level TEXT NOT NULL,
         phone TEXT,
         synced INTEGER NOT NULL DEFAULT 0,
+        nik TEXT,
+        jkn_no TEXT,
+        faskes_tk1 TEXT,
+        faskes_rujukan TEXT,
+        birth_place TEXT,
+        birth_date TEXT,
+        education TEXT,
+        occupation TEXT,
+        address TEXT,
+        blood_type TEXT,
+        gravida INTEGER,
+        para INTEGER,
+        living_children INTEGER,
+        miscarriage_count INTEGER,
+        disease_history TEXT,
+        pre_pregnancy_weight REAL,
+        pre_pregnancy_height REAL,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
     ''');

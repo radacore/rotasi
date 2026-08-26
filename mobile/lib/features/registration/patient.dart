@@ -39,7 +39,29 @@ enum RiskLevel {
       );
 }
 
+enum BloodType {
+  a('A', 'A'),
+  b('B', 'B'),
+  ab('AB', 'AB'),
+  o('O', 'O');
+
+  const BloodType(this.value, this.label);
+  final String value;
+  final String label;
+
+  static BloodType? fromValue(String? v) {
+    if (v == null) return null;
+    for (final e in BloodType.values) {
+      if (e.value == v) return e;
+    }
+    return null;
+  }
+}
+
 /// Profil ibu hamil (FR-01). Sinkron ke `PUT /api/v1/patient`.
+///
+/// Biodata KIA (FR-01b) + BMI pra-hamil ditambah nullable agar kompatibel
+/// dengan data lama. Backend VPS sudah migrasi 2026_08_25_add_biodata_to_patients.
 class Patient {
   const Patient({
     required this.uuid,
@@ -55,6 +77,24 @@ class Patient {
     this.riskLevel = RiskLevel.unknown,
     this.phone,
     this.synced = false,
+    // Biodata KIA
+    this.nik,
+    this.jknNo,
+    this.faskesTk1,
+    this.faskesRujukan,
+    this.birthPlace,
+    this.birthDate,
+    this.education,
+    this.occupation,
+    this.address,
+    this.bloodType,
+    this.gravida,
+    this.para,
+    this.livingChildren,
+    this.miscarriageCount,
+    this.diseaseHistory,
+    this.prePregnancyWeight,
+    this.prePregnancyHeight,
   });
 
   final String uuid;
@@ -70,6 +110,24 @@ class Patient {
   final RiskLevel riskLevel;
   final String? phone;
   final bool synced;
+  // Biodata KIA (nullable untuk backward compat)
+  final String? nik;
+  final String? jknNo;
+  final String? faskesTk1;
+  final String? faskesRujukan;
+  final String? birthPlace;
+  final DateTime? birthDate;
+  final String? education;
+  final String? occupation;
+  final String? address;
+  final BloodType? bloodType;
+  final int? gravida;
+  final int? para;
+  final int? livingChildren;
+  final int? miscarriageCount;
+  final String? diseaseHistory;
+  final double? prePregnancyWeight;
+  final double? prePregnancyHeight;
 
   factory Patient.newLocal({
     required String name,
@@ -130,6 +188,23 @@ class Patient {
     RiskLevel? riskLevel,
     String? phone,
     bool? synced,
+    String? nik,
+    String? jknNo,
+    String? faskesTk1,
+    String? faskesRujukan,
+    String? birthPlace,
+    DateTime? birthDate,
+    String? education,
+    String? occupation,
+    String? address,
+    BloodType? bloodType,
+    int? gravida,
+    int? para,
+    int? livingChildren,
+    int? miscarriageCount,
+    String? diseaseHistory,
+    double? prePregnancyWeight,
+    double? prePregnancyHeight,
   }) {
     return Patient(
       uuid: uuid,
@@ -145,6 +220,23 @@ class Patient {
       riskLevel: riskLevel ?? this.riskLevel,
       phone: phone ?? this.phone,
       synced: synced ?? this.synced,
+      nik: nik ?? this.nik,
+      jknNo: jknNo ?? this.jknNo,
+      faskesTk1: faskesTk1 ?? this.faskesTk1,
+      faskesRujukan: faskesRujukan ?? this.faskesRujukan,
+      birthPlace: birthPlace ?? this.birthPlace,
+      birthDate: birthDate ?? this.birthDate,
+      education: education ?? this.education,
+      occupation: occupation ?? this.occupation,
+      address: address ?? this.address,
+      bloodType: bloodType ?? this.bloodType,
+      gravida: gravida ?? this.gravida,
+      para: para ?? this.para,
+      livingChildren: livingChildren ?? this.livingChildren,
+      miscarriageCount: miscarriageCount ?? this.miscarriageCount,
+      diseaseHistory: diseaseHistory ?? this.diseaseHistory,
+      prePregnancyWeight: prePregnancyWeight ?? this.prePregnancyWeight,
+      prePregnancyHeight: prePregnancyHeight ?? this.prePregnancyHeight,
     );
   }
 
@@ -174,11 +266,76 @@ class Patient {
     return RiskLevel.low;
   }
 
-  /// Indeks Massa Tubuh (IMT) dihitung otomatis dari tinggi & berat.
+  /// Indeks Massa Tubuh (IMT) saat ini.
   double? get bmi {
     if (heightCm <= 0) return null;
     final h = heightCm / 100;
     return weightKg / (h * h);
+  }
+
+  /// BMI pra-kehamilan (pakai prePregnancyWeight/Height bila ada, fallback ke saat ini).
+  double? get bmiPrePregnancy {
+    final h = (prePregnancyHeight ?? heightCm);
+    final w = (prePregnancyWeight ?? weightKg);
+    if (h <= 0) return null;
+    final m = h / 100;
+    return w / (m * m);
+  }
+
+  /// Kategori BMI pra-hamil: kurus <18.5, normal 18.5-24.9, gemuk 25-29.9, obesitas >=30
+  String get bmiCategory {
+    final b = bmiPrePregnancy;
+    if (b == null) return '-';
+    if (b < 18.5) return 'kurus';
+    if (b < 25) return 'normal';
+    if (b < 30) return 'gemuk';
+    return 'obesitas';
+  }
+
+  String get bmiCategoryLabel {
+    switch (bmiCategory) {
+      case 'kurus':
+        return 'Kurus';
+      case 'normal':
+        return 'Normal';
+      case 'gemuk':
+        return 'Gemuk (Overweight)';
+      case 'obesitas':
+        return 'Obesitas';
+      default:
+        return '-';
+    }
+  }
+
+  /// Batas kenaikan berat selama hamil berdasarkan BMI pra-hamil.
+  String get weightGainRange {
+    switch (bmiCategory) {
+      case 'kurus':
+        return '12,5–18 kg';
+      case 'normal':
+        return '11,5–16 kg';
+      case 'gemuk':
+        return '7–11,5 kg';
+      case 'obesitas':
+        return '5–9 kg';
+      default:
+        return '-';
+    }
+  }
+
+  String get bmiAdvice {
+    switch (bmiCategory) {
+      case 'kurus':
+        return 'BMI kurus. Kejar gizi seimbang, target +12,5–18 kg selama hamil. Konsultasi bidan untuk suplementasi.';
+      case 'normal':
+        return 'BMI ideal 18,5–24,9. Pertahankan kenaikan 11,5–16 kg, makan bergizi & aktivitas ringan teratur.';
+      case 'gemuk':
+        return 'BMI gemuk. Batasi kenaikan 7–11,5 kg, kurangi makanan tinggi gula/garam, kontrol rutin.';
+      case 'obesitas':
+        return 'BMI obesitas. Kenaikan ketat 5–9 kg, butuh pemantauan ketat bidan/dokter untuk cegah preeklampsia.';
+      default:
+        return 'Lengkapi berat & tinggi pra-hamil untuk melihat saran.';
+    }
   }
 
   /// Faktor risiko yang terpenuhi, untuk ditampilkan ke pengguna.
@@ -222,6 +379,23 @@ class Patient {
       riskLevel: RiskLevel.fromValue(map['risk_level'] as String?),
       phone: map['phone'] as String?,
       synced: (map['synced'] as int? ?? 0) == 1,
+      nik: map['nik'] as String?,
+      jknNo: map['jkn_no'] as String?,
+      faskesTk1: map['faskes_tk1'] as String?,
+      faskesRujukan: map['faskes_rujukan'] as String?,
+      birthPlace: map['birth_place'] as String?,
+      birthDate: map['birth_date'] == null ? null : DateTime.tryParse(map['birth_date'] as String),
+      education: map['education'] as String?,
+      occupation: map['occupation'] as String?,
+      address: map['address'] as String?,
+      bloodType: BloodType.fromValue(map['blood_type'] as String?),
+      gravida: (map['gravida'] as num?)?.toInt(),
+      para: (map['para'] as num?)?.toInt(),
+      livingChildren: (map['living_children'] as num?)?.toInt(),
+      miscarriageCount: (map['miscarriage_count'] as num?)?.toInt(),
+      diseaseHistory: map['disease_history'] as String?,
+      prePregnancyWeight: (map['pre_pregnancy_weight'] as num?)?.toDouble(),
+      prePregnancyHeight: (map['pre_pregnancy_height'] as num?)?.toDouble(),
     );
   }
 
@@ -240,10 +414,27 @@ class Patient {
       'risk_level': riskLevel.value,
       'phone': phone,
       'synced': synced ? 1 : 0,
+      'nik': nik,
+      'jkn_no': jknNo,
+      'faskes_tk1': faskesTk1,
+      'faskes_rujukan': faskesRujukan,
+      'birth_place': birthPlace,
+      'birth_date': birthDate?.toIso8601String().split('T').first,
+      'education': education,
+      'occupation': occupation,
+      'address': address,
+      'blood_type': bloodType?.value,
+      'gravida': gravida,
+      'para': para,
+      'living_children': livingChildren,
+      'miscarriage_count': miscarriageCount,
+      'disease_history': diseaseHistory,
+      'pre_pregnancy_weight': prePregnancyWeight,
+      'pre_pregnancy_height': prePregnancyHeight,
     };
   }
 
-  /// Payload untuk `PUT /api/v1/patient`.
+  /// Payload untuk `PUT /api/v1/patient` (VPS sudah validasi nik 16 digit, blood_type, dll).
   Map<String, dynamic> toSyncPayload() {
     return {
       'patient_uuid': uuid,
@@ -258,6 +449,59 @@ class Patient {
       'history_type': historyType.value,
       'risk_level': riskLevel.value,
       'phone': phone,
+      'nik': nik,
+      'jkn_no': jknNo,
+      'faskes_tk1': faskesTk1,
+      'faskes_rujukan': faskesRujukan,
+      'birth_place': birthPlace,
+      'birth_date': birthDate?.toIso8601String().split('T').first,
+      'education': education,
+      'occupation': occupation,
+      'address': address,
+      'blood_type': bloodType?.value,
+      'gravida': gravida,
+      'para': para,
+      'living_children': livingChildren,
+      'miscarriage_count': miscarriageCount,
+      'disease_history': diseaseHistory,
+      'pre_pregnancy_weight': prePregnancyWeight,
+      'pre_pregnancy_height': prePregnancyHeight,
     };
+  }
+
+  /// Parse dari `GET /api/v1/patient` VPS (snake_case, beberapa field mungkin null).
+  factory Patient.fromApi(Map<String, dynamic> m, {required String fallbackUuid}) {
+    return Patient(
+      uuid: (m['patient_uuid'] ?? m['uuid'] ?? fallbackUuid) as String,
+      name: (m['name'] ?? '') as String,
+      age: (m['age'] as num?)?.toInt() ?? 25,
+      heightCm: (m['height_cm'] as num?)?.toDouble() ?? 160,
+      weightKg: (m['weight_kg'] as num?)?.toDouble() ?? 55,
+      gestationalWeeks: (m['gestational_weeks'] as num?)?.toInt(),
+      dueDate: m['due_date'] == null ? null : DateTime.tryParse(m['due_date'] as String),
+      lastSystolic: (m['last_systolic'] as num?)?.toInt(),
+      lastDiastolic: (m['last_diastolic'] as num?)?.toInt(),
+      historyType: HistoryType.fromValue(m['history_type'] as String?),
+      riskLevel: RiskLevel.fromValue(m['risk_level'] as String?),
+      phone: m['phone'] as String?,
+      synced: true,
+      nik: m['nik'] as String?,
+      jknNo: m['jkn_no'] as String?,
+      faskesTk1: m['faskes_tk1'] as String?,
+      faskesRujukan: m['faskes_rujukan'] as String?,
+      birthPlace: m['birth_place'] as String?,
+      birthDate: m['birth_date'] == null ? null : DateTime.tryParse(m['birth_date'] as String),
+      education: m['education'] as String?,
+      occupation: m['occupation'] as String?,
+      address: m['address'] as String?,
+      bloodType: BloodType.fromValue(m['blood_type'] as String?),
+      gravida: (m['gravida'] as num?)?.toInt(),
+      para: (m['para'] as num?)?.toInt(),
+      livingChildren: (m['living_children'] as num?)?.toInt(),
+      miscarriageCount: (m['miscarriage_count'] as num?)?.toInt(),
+      diseaseHistory: m['disease_history'] as String?,
+      prePregnancyWeight: (m['pre_pregnancy_weight'] as num?)?.toDouble(),
+      prePregnancyHeight: (m['pre_pregnancy_height'] as num?)?.toDouble(),
+    );
   }
 }

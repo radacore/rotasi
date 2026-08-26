@@ -1170,9 +1170,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Data & Profil'), findsOneWidget);
-      expect(find.text('Kesehatan & Kebiasaan'), findsOneWidget);
-      expect(find.text('Bantuan & Kontak'), findsOneWidget);
       expect(find.text('Data Ibu'), findsOneWidget);
+      expect(find.text('Biodata KIA'), findsOneWidget);
+      expect(find.text('BMI Ibu Hamil'), findsOneWidget);
+      expect(find.text('Kesehatan & Kebiasaan'), findsOneWidget);
+      // Bantuan & Kontak mungkin di bawah lipat pada viewport kecil — scroll jika belum terlihat
+      if (find.text('Bantuan & Kontak').evaluate().isEmpty) {
+        await tester.drag(find.byType(ListView), const Offset(0, -350));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Bantuan & Kontak'), findsOneWidget);
       expect(find.text('Latihan Napas'), findsOneWidget);
       expect(find.text('Rujukan & Darurat'), findsOneWidget);
     });
