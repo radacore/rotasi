@@ -118,7 +118,19 @@ class _BiodataPageState extends State<BiodataPage> {
     _birthPlaceC.text = e.birthPlace ?? '';
     _birthDate = e.birthDate;
     _birthDateC.text = e.birthDate == null ? '' : _fmtDate(e.birthDate!);
-    _ageC.text = e.age.toString();
+    // Usia jangan diisi dari default welcome (25). Hanya hitung dari tanggal
+    // lahir bila tersedia; selain itu biarkan kosong agar ibu mengisi sendiri.
+    if (e.birthDate != null) {
+      final now = DateTime.now();
+      final age = now.year -
+          e.birthDate!.year -
+          (now.month < e.birthDate!.month ||
+                  (now.month == e.birthDate!.month &&
+                      now.day < e.birthDate!.day)
+              ? 1
+              : 0);
+      _ageC.text = age.clamp(12, 55).toString();
+    }
     _addressC.text = e.address ?? '';
     _phoneC.text = e.phone ?? '';
     _faskesTk1C.text = e.faskesTk1 ?? '';
@@ -168,6 +180,16 @@ class _BiodataPageState extends State<BiodataPage> {
     } else {
       _save();
     }
+  }
+
+  String? _required(String? v, String label) =>
+      (v == null || v.trim().isEmpty) ? '$label wajib diisi' : null;
+
+  String? _requiredNum(String? v, String label, {int min = 0}) {
+    if (v == null || v.trim().isEmpty) return '$label wajib diisi';
+    final n = int.tryParse(v.trim());
+    if (n == null || n < min) return min > 0 ? 'Minimal $min' : 'Angka valid';
+    return null;
   }
 
   Future<void> _save() async {
@@ -304,23 +326,23 @@ class _BiodataPageState extends State<BiodataPage> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(16)],
             decoration: _dec('NIK (16 digit)', Icons.badge_outlined, hint: '1234567890123456'),
             validator: (v) {
-              if (v == null || v.isEmpty) return null;
+              if (v == null || v.trim().isEmpty) return 'NIK wajib diisi';
               if (!RegExp(r'^[0-9]{16}$').hasMatch(v)) return 'NIK 16 digit angka';
               return null;
             },
           ),
           const SizedBox(height: 10),
-          TextFormField(controller: _jknC, decoration: _dec('No. JKN', Icons.health_and_safety_outlined, hint: '0001234567890')),
+          TextFormField(controller: _jknC, decoration: _dec('No. JKN', Icons.health_and_safety_outlined, hint: '0001234567890'), validator: (v) => _required(v, 'No. JKN')),
           const SizedBox(height: 10),
           TextFormField(
             controller: _nameC,
             textCapitalization: TextCapitalization.words,
             decoration: _dec('Nama ibu', Icons.person_outline),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib' : null,
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
           ),
           const SizedBox(height: 10),
           Row(children: [
-            Expanded(child: TextFormField(controller: _birthPlaceC, decoration: _dec('Tempat lahir', Icons.location_on_outlined))),
+            Expanded(child: TextFormField(controller: _birthPlaceC, decoration: _dec('Tempat lahir', Icons.location_on_outlined), validator: (v) => _required(v, 'Tempat lahir'))),
             const SizedBox(width: 8),
             Expanded(
               child: TextFormField(
@@ -328,6 +350,7 @@ class _BiodataPageState extends State<BiodataPage> {
                 readOnly: true,
                 decoration: _dec('Tanggal lahir', Icons.cake_outlined),
                 onTap: _pickBirthDate,
+                validator: (v) => _required(v, 'Tanggal lahir'),
               ),
             ),
           ]),
@@ -337,51 +360,53 @@ class _BiodataPageState extends State<BiodataPage> {
             keyboardType: TextInputType.number,
             decoration: _dec('Usia ibu (tahun)', Icons.cake_outlined),
             validator: (v) {
-              final n = int.tryParse(v ?? '');
+              if (v == null || v.trim().isEmpty) return 'Usia wajib diisi';
+              final n = int.tryParse(v);
               if (n == null || n < 12 || n > 55) return '12–55';
               return null;
             },
           ),
           const SizedBox(height: 10),
-          TextFormField(controller: _addressC, maxLines: 2, decoration: _dec('Alamat rumah', Icons.home_outlined)),
+          TextFormField(controller: _addressC, maxLines: 2, decoration: _dec('Alamat rumah', Icons.home_outlined), validator: (v) => _required(v, 'Alamat')),
           const SizedBox(height: 10),
-          TextFormField(controller: _phoneC, keyboardType: TextInputType.phone, decoration: _dec('No. telp/WA', Icons.phone_outlined)),
+          TextFormField(controller: _phoneC, keyboardType: TextInputType.phone, decoration: _dec('No. telp/WA', Icons.phone_outlined), validator: (v) => _required(v, 'No. telp/WA')),
         ]));
       case 1:
         return _stepBody(_stepCard([
-          TextFormField(controller: _faskesTk1C, decoration: _dec('Faskes TK1', Icons.local_hospital_outlined)),
+          TextFormField(controller: _faskesTk1C, decoration: _dec('Faskes TK1', Icons.local_hospital_outlined), validator: (v) => _required(v, 'Faskes TK1')),
           const SizedBox(height: 10),
-          TextFormField(controller: _faskesRujukanC, decoration: _dec('Faskes rujukan', Icons.medical_services_outlined)),
+          TextFormField(controller: _faskesRujukanC, decoration: _dec('Faskes rujukan', Icons.medical_services_outlined), validator: (v) => _required(v, 'Faskes rujukan')),
         ]));
       case 2:
         return _stepBody(_stepCard([
-          TextFormField(controller: _educationC, decoration: _dec('Pendidikan', Icons.school_outlined, hint: 'SMA / S1 ...')),
+          TextFormField(controller: _educationC, decoration: _dec('Pendidikan', Icons.school_outlined, hint: 'SMA / S1 ...'), validator: (v) => _required(v, 'Pendidikan')),
           const SizedBox(height: 10),
-          TextFormField(controller: _occupationC, decoration: _dec('Pekerjaan', Icons.work_outline, hint: 'IRT / PNS ...')),
+          TextFormField(controller: _occupationC, decoration: _dec('Pekerjaan', Icons.work_outline, hint: 'IRT / PNS ...'), validator: (v) => _required(v, 'Pekerjaan')),
           const SizedBox(height: 10),
           DropdownButtonFormField<BloodType>(
             initialValue: _bloodType,
             decoration: _dec('Golongan darah', Icons.water_drop_outlined),
             items: BloodType.values.map((b) => DropdownMenuItem(value: b, child: Text(b.label))).toList(),
             onChanged: (v) => setState(() => _bloodType = v),
+            validator: (v) => v == null ? 'Pilih golongan darah' : null,
           ),
         ]));
       case 3:
       default:
         return _stepBody(_stepCard([
           Row(children: [
-            Expanded(child: TextFormField(controller: _gravidaC, keyboardType: TextInputType.number, decoration: _dec('Kehamilan ke- (G)', Icons.numbers))),
+            Expanded(child: TextFormField(controller: _gravidaC, keyboardType: TextInputType.number, decoration: _dec('Kehamilan ke- (G)', Icons.numbers), validator: (v) => _requiredNum(v, 'Kehamilan ke-', min: 1))),
             const SizedBox(width: 8),
-            Expanded(child: TextFormField(controller: _paraC, keyboardType: TextInputType.number, decoration: _dec('Anak ke- (P)', Icons.numbers))),
+            Expanded(child: TextFormField(controller: _paraC, keyboardType: TextInputType.number, decoration: _dec('Anak ke- (P)', Icons.numbers), validator: (v) => _requiredNum(v, 'Anak ke-'))),
           ]),
           const SizedBox(height: 10),
           Row(children: [
-            Expanded(child: TextFormField(controller: _livingC, keyboardType: TextInputType.number, decoration: _dec('Anak hidup', Icons.child_care))),
+            Expanded(child: TextFormField(controller: _livingC, keyboardType: TextInputType.number, decoration: _dec('Anak hidup', Icons.child_care), validator: (v) => _requiredNum(v, 'Anak hidup'))),
             const SizedBox(width: 8),
-            Expanded(child: TextFormField(controller: _miscarriageC, keyboardType: TextInputType.number, decoration: _dec('Keguguran', Icons.warning_amber_rounded))),
+            Expanded(child: TextFormField(controller: _miscarriageC, keyboardType: TextInputType.number, decoration: _dec('Keguguran', Icons.warning_amber_rounded), validator: (v) => _requiredNum(v, 'Keguguran'))),
           ]),
           const SizedBox(height: 10),
-          TextFormField(controller: _diseaseC, maxLines: 3, decoration: _dec('Riwayat penyakit ibu', Icons.medical_information_outlined, hint: 'Hipertensi, DM, dll — kosongkan bila tidak ada')),
+          TextFormField(controller: _diseaseC, maxLines: 3, decoration: _dec('Riwayat penyakit ibu', Icons.medical_information_outlined, hint: 'Tulis "tidak ada" bila tidak ada'), validator: (v) => _required(v, 'Riwayat penyakit')),
         ]));
     }
   }
@@ -410,7 +435,7 @@ class _BiodataPageState extends State<BiodataPage> {
     }
     final isLast = _currentStep == 3;
     return Scaffold(
-      backgroundColor: AppColors.sand,
+      backgroundColor: AppColors.white,
       appBar: AppBar(title: const Text('Biodata KIA')),
       body: SafeArea(
         child: Column(

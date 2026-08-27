@@ -118,6 +118,12 @@ Future<void> _pumpApp(
     splashMinDuration: Duration.zero,
   ));
   await tester.pumpAndSettle();
+  // Intro selamat datang muncul setelah splash di setiap pembukaan.
+  final lanjutkan = find.text('Lanjutkan');
+  if (lanjutkan.evaluate().isNotEmpty) {
+    await tester.tap(lanjutkan);
+    await tester.pumpAndSettle();
+  }
 }
 
 void main() {
@@ -127,6 +133,24 @@ void main() {
   });
 
   group('StartupGate', () {
+    testWidgets('intro selamat datang muncul setelah splash', (tester) async {
+      await tester.pumpWidget(RotasiApp(
+        repository: FakePatientRepository(),
+        splashMinDuration: Duration.zero,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Selamat Datang di ROTASI'), findsOneWidget);
+      expect(find.text('ROda panTAu tenSI', findRichText: true), findsOneWidget);
+      expect(find.textContaining('preeklamsia'), findsOneWidget);
+      expect(find.text('Lanjutkan'), findsOneWidget);
+
+      await tester.tap(find.text('Lanjutkan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Selamat Datang'), findsOneWidget);
+      expect(find.text('Nama ibu'), findsOneWidget);
+    });
+
     testWidgets('first launch -> halaman registrasi biodata', (tester) async {
       await _pumpApp(tester, FakePatientRepository());
 
@@ -292,24 +316,62 @@ void main() {
       expect(find.text('Step 1/4'), findsOneWidget);
     });
 
+    testWidgets('step 1 kosong memblokir Selanjutnya', (tester) async {
+      await pumpBiodata(tester, FakePatientRepository(initial: existing()));
+
+      await tester.tap(find.text('Selanjutnya'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Step 1/4'), findsOneWidget);
+      expect(find.text('NIK wajib diisi'), findsOneWidget);
+      expect(find.text('No. JKN wajib diisi'), findsOneWidget);
+      expect(find.text('Tanggal lahir wajib diisi'), findsOneWidget);
+      expect(find.text('Alamat wajib diisi'), findsOneWidget);
+    });
+
+    testWidgets('usia tidak terisi otomatis dari default welcome (25)',
+        (tester) async {
+      await pumpBiodata(tester, FakePatientRepository(initial: existing()));
+
+      final usiaField = tester.widget<TextFormField>(
+        find.widgetWithText(TextFormField, 'Usia ibu (tahun)'),
+      );
+      expect(usiaField.controller!.text, isEmpty);
+    });
+
     testWidgets('selesaikan semua step lalu Simpan Biodata', (tester) async {
       final repo = FakePatientRepository(initial: existing());
       await pumpBiodata(tester, repo);
 
+      // Step 1 Identitas
       await tester.enterText(find.widgetWithText(TextFormField, 'NIK (16 digit)'), '3201012308920001');
+      await tester.enterText(find.widgetWithText(TextFormField, 'No. JKN'), '0001234567890');
       await tester.enterText(find.widgetWithText(TextFormField, 'Nama ibu'), 'Sitti Nur');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Usia ibu (tahun)'), '26');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Tempat lahir'), 'Makassar');
+      await tester.tap(find.widgetWithText(TextFormField, 'Tanggal lahir'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextFormField, 'Alamat rumah'), 'Jl. Merdeka No.1');
+      await tester.enterText(find.widgetWithText(TextFormField, 'No. telp/WA'), '081234567890');
       await tester.tap(find.text('Selanjutnya'));
       await tester.pumpAndSettle();
       expect(find.text('Step 2/4'), findsOneWidget);
 
+      // Step 2 Faskes
       await tester.enterText(find.widgetWithText(TextFormField, 'Faskes TK1'), 'Puskesmas Kota');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Faskes rujukan'), 'RS Umum');
       await tester.tap(find.text('Selanjutnya'));
       await tester.pumpAndSettle();
       expect(find.text('Step 3/4'), findsOneWidget);
 
+      // Step 3 Sosial & Darah
       await tester.enterText(find.widgetWithText(TextFormField, 'Pendidikan'), 'S1');
       await tester.enterText(find.widgetWithText(TextFormField, 'Pekerjaan'), 'IRT');
+      await tester.tap(find.text('Golongan darah'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('A').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Selanjutnya'));
       await tester.pumpAndSettle();
       expect(find.text('Step 4/4'), findsOneWidget);
@@ -320,6 +382,12 @@ void main() {
       await tester.tap(find.text('Selanjutnya'));
       await tester.pumpAndSettle();
 
+      // Step 4 Obstetri
+      await tester.enterText(find.widgetWithText(TextFormField, 'Kehamilan ke- (G)'), '2');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Anak ke- (P)'), '1');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Anak hidup'), '1');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Keguguran'), '0');
+      await tester.enterText(find.widgetWithText(TextFormField, 'Riwayat penyakit ibu'), 'Tidak ada');
       await tester.tap(find.text('Simpan Biodata'));
       await tester.pumpAndSettle();
 
@@ -327,6 +395,7 @@ void main() {
       expect(repo.stored!.nik, '3201012308920001');
       expect(repo.stored!.faskesTk1, 'Puskesmas Kota');
       expect(repo.stored!.education, 'S1');
+      expect(repo.stored!.bloodType, BloodType.a);
     });
   });
 
