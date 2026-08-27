@@ -5,10 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../biodata/biodata_page.dart';
 import '../bmi/bmi_page.dart';
 import '../breathing/breathing_page.dart';
-import '../measurement/bp_repository.dart';
 import '../midwife/midwife_page.dart';
 import '../referral/referral_page.dart';
-import '../registration/data_ibu_page.dart';
 import '../registration/patient_repository.dart';
 import '../reminder/reminder_page.dart';
 
@@ -20,12 +18,10 @@ class MorePage extends StatefulWidget {
   const MorePage({
     super.key,
     this.repository,
-    this.bpRepository,
     this.syncService,
   });
 
   final PatientRepository? repository;
-  final BpRepository? bpRepository;
   final SyncService? syncService;
 
   @override
@@ -70,26 +66,12 @@ class _MorePageState extends State<MorePage> {
   @override
   Widget build(BuildContext context) {
     final patientRepository = widget.repository ?? PatientRepository();
-    final bpRepo = widget.bpRepository ?? BpRepository();
     return Scaffold(
       appBar: AppBar(title: const Text('Lainnya')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const _CategoryTitle('Data & Profil'),
-          _MoreTile(
-            icon: Icons.person_outline,
-            title: 'Data Ibu',
-            subtitle: 'Lihat dan ubah profil serta skrining risiko.',
-            onTap: () => _push(
-              context,
-              DataIbuPage(
-                repository: patientRepository,
-                bpRepository: bpRepo,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
           _MoreTile(
             icon: Icons.badge_outlined,
             title: 'Biodata KIA',

@@ -129,6 +129,29 @@ class Patient {
   final double? prePregnancyWeight;
   final double? prePregnancyHeight;
 
+  /// Biodata KIA belum lengkap bila ada field wajib form yang masih kosong.
+  ///
+  /// Dipakai untuk menyembunyikan kartu "Lengkapi Biodata KIA" di Beranda dan
+  /// men-disable aksi "Ukur Tensi" sampai semua field terisi (FR-01b).
+  bool get biodataIncomplete {
+    return (nik == null || nik!.isEmpty) ||
+        (jknNo == null || jknNo!.isEmpty) ||
+        (birthPlace == null || birthPlace!.isEmpty) ||
+        birthDate == null ||
+        (address == null || address!.isEmpty) ||
+        (phone == null || phone!.isEmpty) ||
+        (faskesTk1 == null || faskesTk1!.isEmpty) ||
+        (faskesRujukan == null || faskesRujukan!.isEmpty) ||
+        (education == null || education!.isEmpty) ||
+        (occupation == null || occupation!.isEmpty) ||
+        bloodType == null ||
+        gravida == null ||
+        para == null ||
+        livingChildren == null ||
+        miscarriageCount == null ||
+        (diseaseHistory == null || diseaseHistory!.isEmpty);
+  }
+
   factory Patient.newLocal({
     required String name,
     required int age,

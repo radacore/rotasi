@@ -6,6 +6,7 @@ import 'package:rotasi_mobile/app.dart';
 import 'package:rotasi_mobile/features/measurement/bp_measurement.dart';
 import 'package:rotasi_mobile/features/measurement/bp_repository.dart';
 import 'package:rotasi_mobile/features/measurement/measurement_page.dart';
+import 'package:rotasi_mobile/features/measurement/measurement_result_page.dart';
 import 'package:rotasi_mobile/features/measurement/rotasi_wheel.dart';
 import 'package:rotasi_mobile/features/measurement/bp_status.dart';
 import 'package:rotasi_mobile/features/measurement/trend_page.dart';
@@ -105,6 +106,28 @@ class FakeBpRepository extends BpRepository {
   Future<Patient?> localPatient() async => null;
 }
 
+/// Profil dengan seluruh biodata KIA (termasuk BMI pra-hamil) terisi.
+Patient completeBiodata(Patient p) => p.copyWith(
+      nik: '1234567890123456',
+      jknNo: '0001234567890',
+      faskesTk1: 'Puskesmas Makassar',
+      faskesRujukan: 'RS. Hasanuddin',
+      birthPlace: 'Makassar',
+      birthDate: DateTime(1998, 5, 1),
+      education: 'S1',
+      occupation: 'IRT',
+      address: 'Jl. Merdeka No. 1',
+      phone: '08123456789',
+      bloodType: BloodType.o,
+      gravida: 1,
+      para: 0,
+      livingChildren: 0,
+      miscarriageCount: 0,
+      diseaseHistory: 'Tidak ada',
+      prePregnancyWeight: 50,
+      prePregnancyHeight: 155,
+    );
+
 Future<void> _pumpApp(
   WidgetTester tester,
   PatientRepository repo, {
@@ -118,12 +141,9 @@ Future<void> _pumpApp(
     splashMinDuration: Duration.zero,
   ));
   await tester.pumpAndSettle();
-  // Intro selamat datang muncul setelah splash di setiap pembukaan.
-  final lanjutkan = find.text('Lanjutkan');
-  if (lanjutkan.evaluate().isNotEmpty) {
-    await tester.tap(lanjutkan);
-    await tester.pumpAndSettle();
-  }
+  // Intro selamat datang otomatis lanjut setelah durasinya (3 detik).
+  await tester.pump(const Duration(seconds: 3));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -133,7 +153,7 @@ void main() {
   });
 
   group('StartupGate', () {
-    testWidgets('intro selamat datang muncul setelah splash', (tester) async {
+    testWidgets('intro selamat datang muncul setelah splash & auto-advance', (tester) async {
       await tester.pumpWidget(RotasiApp(
         repository: FakePatientRepository(),
         splashMinDuration: Duration.zero,
@@ -143,9 +163,10 @@ void main() {
       expect(find.text('Selamat Datang di ROTASI'), findsOneWidget);
       expect(find.text('ROda panTAu tenSI', findRichText: true), findsOneWidget);
       expect(find.textContaining('preeklamsia'), findsOneWidget);
-      expect(find.text('Lanjutkan'), findsOneWidget);
+      expect(find.text('Lanjutkan'), findsNothing);
 
-      await tester.tap(find.text('Lanjutkan'));
+      // Auto-masuk ke registrasi setelah durasi intro (3 detik).
+      await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
       expect(find.text('Selamat Datang'), findsOneWidget);
       expect(find.text('Nama ibu'), findsOneWidget);
@@ -173,6 +194,40 @@ void main() {
 
       expect(find.text('Halo, Sitti,', findRichText: true), findsOneWidget);
       expect(find.text('semoga sehat selalu'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Ukur Tensi'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('biodata belum lengkap -> card tampil tapi tombol tetap aktif',
+        (tester) async {
+      final existing =
+          Patient.newLocal(name: 'Sitti', age: 28, heightCm: 155, weightKg: 52);
+      await _pumpApp(
+        tester,
+        FakePatientRepository(initial: existing),
+        bpRepo: FakeBpRepository(),
+      );
+
+      expect(find.text('Lengkapi Biodata KIA'), findsOneWidget);
+      final btn = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Ukur Tensi'),
+      );
+      expect(btn.onPressed, isNotNull);
+    });
+
+    testWidgets('biodata lengkap -> card hilang', (tester) async {
+      final existing = completeBiodata(
+        Patient.newLocal(name: 'Sitti', age: 28, heightCm: 155, weightKg: 52),
+      );
+      await _pumpApp(
+        tester,
+        FakePatientRepository(initial: existing),
+        bpRepo: FakeBpRepository(),
+      );
+
+      expect(find.text('Lengkapi Biodata KIA'), findsNothing);
       expect(
         find.widgetWithText(ElevatedButton, 'Ukur Tensi'),
         findsOneWidget,
@@ -469,6 +524,74 @@ void main() {
       expect(bpRepo.stored!.sessionCode.value, 'pagi');
       expect(bpRepo.stored!.status.label, 'Waspada');
     });
+
+    testWidgets('hasil Darurat tidak menampilkan kontak darurat/keluarga siaga',
+        (tester) async {
+      final bpRepo = FakeBpRepository();
+      tester.view.physicalSize = const Size(900, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MeasurementResultPage(
+            repository: bpRepo,
+            measurement: BpMeasurement.record(
+              patientUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+              measuredAt: DateTime(2026, 8, 20, 8, 0),
+              sessionCode: SessionCode.pagi,
+              systolic1: 165,
+              diastolic1: 112,
+              systolic2: 165,
+              diastolic2: 112,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kontak Darurat — Segera Hubungi'), findsNothing);
+      expect(find.textContaining('keluarga siaga'), findsNothing);
+      // Card panduan redundan disembunyikan; hanya StatusExplanation (Buku KIA) yang tampil.
+      expect(find.textContaining('hubungi layanan darurat'), findsNothing);
+      expect(find.textContaining('Buku KIA 2025'), findsOneWidget);
+      expect(find.text('Simpan Hasil'), findsOneWidget);
+    });
+
+    testWidgets('hasil Hipotensi hanya menampilkan satu widget penjelasan',
+        (tester) async {
+      final bpRepo = FakeBpRepository();
+      tester.view.physicalSize = const Size(900, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MeasurementResultPage(
+            repository: bpRepo,
+            measurement: BpMeasurement.record(
+              patientUuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+              measuredAt: DateTime(2026, 8, 20, 8, 0),
+              sessionCode: SessionCode.pagi,
+              systolic1: 85,
+              diastolic1: 55,
+              systolic2: 85,
+              diastolic2: 55,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Widget 2 (card panduan bold) & widget 3 (Hipotensi — Anjuran) dihapus.
+      expect(
+        find.text('Hipotensi (<90/60 mmHg). Minum cukup (±2,5–3 L/hari), '
+            'jangan bangun mendadak, tidur miring kiri. Jika sering '
+            'pingsan/pusing hebat, segera hubungi bidan.'),
+        findsNothing,
+      );
+      expect(find.text('Hipotensi — Anjuran'), findsNothing);
+      expect(find.textContaining('HIPOTENSI'), findsOneWidget);
+      expect(find.text('Simpan Hasil'), findsOneWidget);
+    });
   });
 
   group('TrendPage (FR-05)', () {
@@ -485,6 +608,18 @@ void main() {
     testWidgets('tanpa data -> pesan kosong', (tester) async {
       await pumpTrend(tester, FakeBpRepository());
       expect(find.text('Belum ada data pengukuran.'), findsOneWidget);
+    });
+
+    testWidgets('CTA Ukur Tensi membuka halaman pengukuran', (tester) async {
+      final bpRepo = FakeBpRepository();
+      await pumpTrend(tester, bpRepo);
+
+      expect(find.text('Ukur Sekarang'), findsOneWidget);
+
+      await tester.tap(find.text('Ukur Sekarang'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Simpan Pengukuran 1'), findsOneWidget);
     });
 
     testWidgets('dengan data -> grafik sistolik & diastolik + legenda',
@@ -1273,13 +1408,12 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('menampilkan 5 menu bottom navigation', (tester) async {
+    testWidgets('menampilkan 4 menu bottom navigation', (tester) async {
       await pumpShell(tester);
       expect(find.byType(NavigationBar), findsOneWidget);
       for (final label in [
         'Beranda',
-        'Ukur Tensi',
-        'Tren',
+        'Tekanan Darah',
         'Pantau',
         'Edukasi',
       ]) {
@@ -1290,9 +1424,10 @@ void main() {
     testWidgets('berpindah antar tab membuka halaman terkait', (tester) async {
       await pumpShell(tester);
 
-      await tester.tap(find.text('Tren'));
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('Tren Tekanan Darah'), findsOneWidget);
+      await tester.tap(find.text('Tekanan Darah'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tekanan Darah'), findsWidgets);
+      expect(find.text('Ukur Sekarang'), findsOneWidget);
 
       await tester.tap(find.text('Pantau'));
       await tester.pumpAndSettle();
@@ -1310,17 +1445,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Data & Profil'), findsOneWidget);
-      expect(find.text('Data Ibu'), findsOneWidget);
       expect(find.text('Biodata KIA'), findsOneWidget);
       expect(find.text('BMI Ibu Hamil'), findsOneWidget);
       expect(find.text('Kesehatan & Kebiasaan'), findsOneWidget);
-      // Bantuan & Kontak mungkin di bawah lipat pada viewport kecil — scroll jika belum terlihat
-      if (find.text('Bantuan & Kontak').evaluate().isEmpty) {
-        await tester.drag(find.byType(ListView), const Offset(0, -350));
-        await tester.pumpAndSettle();
-      }
-      expect(find.text('Bantuan & Kontak'), findsOneWidget);
       expect(find.text('Latihan Napas'), findsOneWidget);
+      // Bantuan & Kontak mungkin di bawah lipat pada viewport kecil — scroll.
+      await tester.scrollUntilVisible(
+        find.text('Rujukan & Darurat'),
+        200,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Bantuan & Kontak'), findsOneWidget);
       expect(find.text('Rujukan & Darurat'), findsOneWidget);
     });
   });

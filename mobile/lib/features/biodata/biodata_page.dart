@@ -195,7 +195,7 @@ class _BiodataPageState extends State<BiodataPage> {
   Future<void> _save() async {
     final existing = _existing;
     if (existing == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi registrasi awal dulu di Data Ibu.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lengkapi registrasi awal dulu.')));
       return;
     }
     final age = int.tryParse(_ageC.text) ?? existing.age;
@@ -332,7 +332,13 @@ class _BiodataPageState extends State<BiodataPage> {
             },
           ),
           const SizedBox(height: 10),
-          TextFormField(controller: _jknC, decoration: _dec('No. JKN', Icons.health_and_safety_outlined, hint: '0001234567890'), validator: (v) => _required(v, 'No. JKN')),
+          TextFormField(
+            controller: _jknC,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(13)],
+            decoration: _dec('No. JKN', Icons.health_and_safety_outlined, hint: '0001234567890'),
+            validator: (v) => _required(v, 'No. JKN'),
+          ),
           const SizedBox(height: 10),
           TextFormField(
             controller: _nameC,
@@ -427,7 +433,7 @@ class _BiodataPageState extends State<BiodataPage> {
               const SizedBox(height: 12),
               Text('Belum ada profil', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              const Text('Isi Data Ibu dulu.', textAlign: TextAlign.center),
+              const Text('Isi registrasi awal dulu.', textAlign: TextAlign.center),
             ]),
           ),
         ),

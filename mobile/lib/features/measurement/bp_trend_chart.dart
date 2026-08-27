@@ -119,7 +119,7 @@ class _TrendPainter extends CustomPainter {
   static const _left = 38.0;
   static const _right = 10.0;
   static const _top = 12.0;
-  static const _bottom = 26.0;
+  static const _bottom = 8.0;
 
   late final double _minV;
   late final double _maxV;
@@ -244,25 +244,7 @@ class _TrendPainter extends CustomPainter {
       }
     }
 
-    // Label sumbu X (di luar clip).
-    final indices = <int>[];
-    if (n <= 6) {
-      for (var i = 0; i < n; i++) {
-        indices.add(i);
-      }
-    } else {
-      indices.add(0);
-      indices.add(n ~/ 2);
-      indices.add(n - 1);
-    }
-    for (final i in indices) {
-      _drawLabel(
-        canvas,
-        xLabels[i],
-        Offset(_x(i, plotW), _top + plotH + 14),
-        alignRight: false,
-      );
-    }
+    // Label sumbu X dihapus — tanggal/waktu cek di tab Riwayat agar tidak tumpang tindih.
   }
 
   double _x(int i, double plotW) {

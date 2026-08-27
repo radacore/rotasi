@@ -76,10 +76,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openMore() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => MorePage(
-          repository: _repository,
-          bpRepository: _bpRepository,
-        ),
+        builder: (_) => MorePage(repository: _repository),
       ),
     );
     // Muat ulang profil setelah kembali, agar sapaan ikut terbarui bila diedit.
@@ -95,17 +92,7 @@ class _HomePageState extends State<HomePage> {
     _load();
   }
 
-  bool get _needsBiodata {
-    final p = _patient;
-    if (p == null) return false;
-    // Minimal KIA dianggap belum lengkap bila NIK / darah / gravida / BMI pra-hamil kosong
-    return (p.nik == null || p.nik!.isEmpty) ||
-        p.bloodType == null ||
-        p.gravida == null ||
-        p.prePregnancyWeight == null ||
-        p.faskesTk1 == null ||
-        p.address == null;
-  }
+  bool get _needsBiodata => _patient?.biodataIncomplete ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +186,7 @@ class _IncompleteBiodataCard extends StatelessWidget {
                 Text('Lengkapi Biodata KIA',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
                 const SizedBox(height: 2),
-                Text('NIK, Faskes, golongan darah & BMI pra-hamil diperlukan untuk skrining risiko.',
+                Text('Isi semua biodata (NIK, JKN, faskes, golongan darah & lainnya) untuk membuka aksi ukur tensi.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, height: 1.3)),
                 const SizedBox(height: 10),
                 SizedBox(

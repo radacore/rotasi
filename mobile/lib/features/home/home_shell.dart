@@ -5,16 +5,16 @@ import '../../core/sync/auto_sync.dart';
 import '../../core/sync/sync_service.dart';
 import '../education/education_page.dart';
 import '../measurement/bp_repository.dart';
-import '../measurement/measurement_page.dart';
 import '../measurement/trend_page.dart';
 import '../registration/patient_repository.dart';
 import 'home_page.dart';
 import 'monitor_page.dart';
 
-/// Cangkang aplikasi dengan bottom navigation (5 menu utama).
+/// Cangkang aplikasi dengan bottom navigation (4 menu utama).
 ///
 /// Tiap tab membawa navigator sendiri agar navigasi internal (mis. hasil
 /// pengukuran) tetap terisolasi dan state tiap tab tidak hilang saat berpindah.
+/// Tab "Tekanan Darah" menggabungkan alur ukur tensi + tren (gabungan FR-03/FR-05).
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
@@ -35,7 +35,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _index = 0;
   final Set<int> _visited = {0};
   final _navKeys = List<GlobalKey<NavigatorState>>.generate(
-    5,
+    4,
     (_) => GlobalKey<NavigatorState>(),
   );
   late final AutoSync _autoSync;
@@ -65,7 +65,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       repository: widget.repository,
       bpRepository: widget.bpRepository,
     ),
-    MeasurementPage(repository: widget.bpRepository),
     TrendPage(repository: widget.bpRepository),
     const MonitorPage(),
     const EducationPage(),
@@ -118,14 +117,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               label: 'Beranda',
             ),
             NavigationDestination(
-              icon: Icon(Icons.favorite_outline),
-              selectedIcon: Icon(Icons.favorite),
-              label: 'Ukur Tensi',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.show_chart_outlined),
               selectedIcon: Icon(Icons.show_chart),
-              label: 'Tren',
+              label: 'Tekanan Darah',
             ),
             NavigationDestination(
               icon: Icon(Icons.monitor_heart_outlined),

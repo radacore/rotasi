@@ -77,23 +77,23 @@ const _entries = <_Explanation>[
   ),
   _Explanation(
     BpStatus.normal,
-    'Tekanan darah normal. Teruskan pola hidup sehat, makan bergizi, dan kontrol rutin ke bidan sesuai jadwal.',
+    'Tekanan darah normal. Teruskan pola hidup sehat, makan bergizi, dan kontrol rutin ANC 6x ke bidan sesuai jadwal.',
   ),
   _Explanation(
     BpStatus.elevated,
-    'Tekanan darah mulai naik. Kurangi makanan asin, istirahat cukup, dan sampaikan hasil ini ke bidan saat pemeriksaan ANC berikutnya.',
+    'Tekanan darah mulai naik. Kurangi makanan asin, kelola stres, istirahat cukup, dan pantau rutin. Sampaikan hasil ini ke bidan saat pemeriksaan ANC berikutnya.',
   ),
   _Explanation(
     BpStatus.stage1,
-    'Tekanan darah sudah masuk Hipertensi Derajat 1. Ibu perlu segera berkonsultasi ke Puskesmas.',
+    'Tekanan darah sudah masuk Hipertensi Derajat 1. Periksa ulang rutin dan segera berkonsultasi ke Puskesmas.',
   ),
   _Explanation(
     BpStatus.crisis,
-    'Tekanan darah sangat tinggi (Hipertensi Derajat 2). Ibu harus segera ke Puskesmas atau RS, terutama jika disertai gejala berat.',
+    'Tekanan darah sangat tinggi ≥140/90 mmHg (Hipertensi Derajat 2, Buku KIA 2025). Ibu harus segera ke Puskesmas atau RS, terutama jika disertai gejala berat.',
   ),
   _Explanation(
     BpStatus.emergency,
-    'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS, hubungi 119 & keluarga siaga (Buku KIA 2025).',
+    'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS & hubungi 119 (Buku KIA 2025).',
   ),
 ];
 

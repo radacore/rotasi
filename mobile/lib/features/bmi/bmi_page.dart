@@ -91,6 +91,39 @@ class _BmiPageState extends State<BmiPage> {
     }
   }
 
+  /// Gaya input konsisten dengan form Biodata KIA.
+  InputDecoration _dec(String label, IconData icon, {String? hint}) =>
+      InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(fontSize: 13),
+        floatingLabelStyle: const TextStyle(fontSize: 13, color: AppColors.primary),
+        prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.crisis),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.crisis, width: 1.5),
+        ),
+      );
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final p = _patient;
@@ -125,7 +158,7 @@ class _BmiPageState extends State<BmiPage> {
     if (_patient == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('BMI Ibu Hamil')),
-        body: const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Belum ada profil. Isi Data Ibu dulu.'))),
+        body: const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Belum ada profil. Isi registrasi awal dulu.'))),
       );
     }
     final localBmi = _localBmi;
@@ -167,7 +200,7 @@ class _BmiPageState extends State<BmiPage> {
                   TextFormField(
                     controller: _heightC,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Tinggi pra-hamil (cm)', prefixIcon: Icon(Icons.height)),
+                    decoration: _dec('Tinggi pra-hamil (cm)', Icons.height, hint: '155'),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');
                       if (n == null || n < 100 || n > 250) return '100–250 cm';
@@ -179,7 +212,7 @@ class _BmiPageState extends State<BmiPage> {
                   TextFormField(
                     controller: _weightC,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Berat pra-hamil (kg)', prefixIcon: Icon(Icons.monitor_weight_outlined)),
+                    decoration: _dec('Berat pra-hamil (kg)', Icons.monitor_weight_outlined, hint: '52'),
                     validator: (v) {
                       final n = double.tryParse(v ?? '');
                       if (n == null || n < 30 || n > 200) return '30–200 kg';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -5,12 +7,37 @@ import '../../core/theme/app_theme.dart';
 /// Intro ucapan selamat datang yang tampil setelah animasi logo splash.
 ///
 /// Menjelaskan arti ROTASI (ROda panTAu tenSI) dan manfaatnya memantau
-/// tekanan darah ibu hamil untuk mencegah preeklamsia. Dipakai di setiap
-/// pembukaan aplikasi sebelum masuk Registrasi/Beranda.
-class WelcomeIntroPage extends StatelessWidget {
-  const WelcomeIntroPage({super.key, required this.onContinue});
+/// tekanan darah ibu hamil untuk mencegah preeklamsia. Muncul di setiap
+/// pembukaan aplikasi, lalu otomatis lanjut ke Registrasi/Beranda setelah
+/// [duration].
+class WelcomeIntroPage extends StatefulWidget {
+  const WelcomeIntroPage({
+    super.key,
+    required this.onContinue,
+    this.duration = const Duration(seconds: 3),
+  });
 
   final VoidCallback onContinue;
+  final Duration duration;
+
+  @override
+  State<WelcomeIntroPage> createState() => _WelcomeIntroPageState();
+}
+
+class _WelcomeIntroPageState extends State<WelcomeIntroPage> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(widget.duration, widget.onContinue);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,37 +124,18 @@ class WelcomeIntroPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: const Text(
-                  'ROTASI akan memudahkan ibu hamil memantau status tekanan darahnya untuk mencegah terjadinya preeklamsia.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                    color: Colors.white,
-                  ),
+              const Text(
+                'ROTASI akan memudahkan ibu hamil memantau status tekanan darahnya untuk mencegah terjadinya preeklamsia.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                  color: Colors.white,
                 ),
               ),
-              const Spacer(flex: 3),
-              ElevatedButton(
-                onPressed: onContinue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
-                ),
-                child: const Text('Lanjutkan'),
-              ),
-              const SizedBox(height: 18),
+              const Spacer(flex: 2),
             ],
           ),
         ),

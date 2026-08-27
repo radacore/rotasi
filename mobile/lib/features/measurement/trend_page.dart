@@ -6,11 +6,13 @@ import 'bp_measurement.dart';
 import 'bp_repository.dart';
 import 'bp_status.dart';
 import 'bp_trend_chart.dart';
+import 'measurement_page.dart';
 
-/// Grafik tren tekanan darah (FR-05).
+/// Grafik tren tekanan darah (FR-05) + pintu masuk ukur tensi (FR-03).
 ///
-/// Menampilkan ringkasan nilai terakhir, filter rentang, grafik sistolik &
-/// diastolik, distribusi status, dan interpretasi otomatis.
+/// Tab "Tekanan Darah" menggabungkan alur pengukuran (tombol Ukur Sekarang)
+/// dengan ringkasan nilai terakhir, grafik sistolik & diastolik, distribusi
+/// status, dan interpretasi otomatis.
 class TrendPage extends StatefulWidget {
   const TrendPage({super.key, this.repository});
 
@@ -69,6 +71,16 @@ class _TrendPageState extends State<TrendPage> {
   /// Muat ulang saat data pengukuran baru tersimpan (auto-update).
   void _onBpChanged() {
     _load();
+  }
+
+  /// Buka alur ukur tensi (2x pengukuran). Memakai repository yang sama agar
+  /// grafik langsung ter-refresh setelah hasil disimpan.
+  void _openMeasurement() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MeasurementPage(repository: _repository),
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -137,14 +149,21 @@ class _TrendPageState extends State<TrendPage> {
   Widget build(BuildContext context) {
     if (!_loaded) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Tren Tekanan Darah')),
+        appBar: AppBar(title: const Text('Tekanan Darah')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_data.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Tren Tekanan Darah')),
-        body: const _EmptyState(),
+        appBar: AppBar(title: const Text('Tekanan Darah')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _MeasureCtaCard(onPressed: _openMeasurement),
+            const SizedBox(height: 16),
+            const _EmptyState(),
+          ],
+        ),
       );
     }
     final days = _buildDays();
@@ -152,7 +171,7 @@ class _TrendPageState extends State<TrendPage> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Tren Tekanan Darah'),
+          title: const Text('Tekanan Darah'),
           bottom: const TabBar(
             labelColor: AppColors.white,
             unselectedLabelColor: Colors.white70,
@@ -193,6 +212,8 @@ class _TrendPageState extends State<TrendPage> {
     };
 
     return [
+      _MeasureCtaCard(onPressed: _openMeasurement),
+      const SizedBox(height: 12),
       Card(
         margin: EdgeInsets.zero,
         color: AppColors.skyLight,
@@ -294,6 +315,54 @@ class _TrendPageState extends State<TrendPage> {
         xLabels: xLabels,
       ),
     ];
+  }
+}
+
+class _MeasureCtaCard extends StatelessWidget {
+  const _MeasureCtaCard({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: AppColors.skyLight.withValues(alpha: 0.55),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.favorite, color: AppColors.primary, size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Ukur Tensi',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Catat tekanan darah pagi/sore — 2x pengukuran dengan jeda 1 menit '
+              '(protokol AHA 2025).',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppColors.textSecondary, height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: onPressed,
+              child: const Text('Ukur Sekarang'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -214,6 +214,30 @@ class _MeasurementPageState extends State<MeasurementPage> {
   }
 }
 
+/// Dekorasi field konsisten dengan style TextFormField Biodata KIA.
+InputDecoration _fieldDecoration(String label, IconData icon) =>
+    InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(fontSize: 13),
+      floatingLabelStyle: const TextStyle(fontSize: 13, color: AppColors.primary),
+      prefixIcon: Icon(icon, size: 18, color: AppColors.textSecondary),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+    );
+
 class _ReadingCard extends StatelessWidget {
   const _ReadingCard({
     required this.title,
@@ -265,10 +289,8 @@ class _ReadingCard extends StatelessWidget {
                     controller: sysController,
                     enabled: enabled,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Sistolik (atas)',
-                      prefixIcon: Icon(Icons.favorite_outline),
-                    ),
+                    decoration:
+                        _fieldDecoration('Sistolik (atas)', Icons.favorite_outline),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -277,10 +299,8 @@ class _ReadingCard extends StatelessWidget {
                     controller: diaController,
                     enabled: enabled,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Diastolik (bawah)',
-                      prefixIcon: Icon(Icons.favorite_outline),
-                    ),
+                    decoration: _fieldDecoration(
+                        'Diastolik (bawah)', Icons.favorite_outline),
                   ),
                 ),
               ],
