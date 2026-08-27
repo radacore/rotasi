@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:uuid/uuid.dart';
 
 /// Riwayat hipertensi ibu (FR-01, FR-02).
@@ -95,6 +97,10 @@ class Patient {
     this.diseaseHistory,
     this.prePregnancyWeight,
     this.prePregnancyHeight,
+    this.hasPriorPreeclampsia = false,
+    this.hasChronicHypertension = false,
+    this.hasFamilyHistory = false,
+    this.riskDetail,
   });
 
   final String uuid;
@@ -128,6 +134,11 @@ class Patient {
   final String? diseaseHistory;
   final double? prePregnancyWeight;
   final double? prePregnancyHeight;
+  // Stratifikasi Phase 2 — 4 faktor + detail json (VPS 2026_08_26/27)
+  final bool hasPriorPreeclampsia;
+  final bool hasChronicHypertension;
+  final bool hasFamilyHistory;
+  final Map<String, dynamic>? riskDetail;
 
   /// Biodata KIA belum lengkap bila ada field wajib form yang masih kosong.
   ///
@@ -228,6 +239,10 @@ class Patient {
     String? diseaseHistory,
     double? prePregnancyWeight,
     double? prePregnancyHeight,
+    bool? hasPriorPreeclampsia,
+    bool? hasChronicHypertension,
+    bool? hasFamilyHistory,
+    Map<String, dynamic>? riskDetail,
   }) {
     return Patient(
       uuid: uuid,
@@ -260,34 +275,58 @@ class Patient {
       diseaseHistory: diseaseHistory ?? this.diseaseHistory,
       prePregnancyWeight: prePregnancyWeight ?? this.prePregnancyWeight,
       prePregnancyHeight: prePregnancyHeight ?? this.prePregnancyHeight,
+      hasPriorPreeclampsia: hasPriorPreeclampsia ?? this.hasPriorPreeclampsia,
+      hasChronicHypertension: hasChronicHypertension ?? this.hasChronicHypertension,
+      hasFamilyHistory: hasFamilyHistory ?? this.hasFamilyHistory,
+      riskDetail: riskDetail ?? this.riskDetail,
     );
   }
 
-  /// Skrining risiko otomatis (FR-02) dari biodata, berdasar
-  /// kriteria NICE & KIA 2024:
-  /// - tinggi: pernah preeklamsia, usia >= 40, IMT >= 35
-  /// - sedang: hipertensi, riwayat turunan, usia > 35, IMT > 30
+  /// Skrining risiko otomatis (FR-02) — Phase 1 stratifikasi preeklamsia.
+  ///
+  /// Kriteria NICE/KIA 2024 disesuaikan spek Rotasi:
+  /// - tinggi: pernah preeklamsia, hipertensi kronis (= hypertension), usia >= 40, IMT >= 35
+  /// - sedang: riwayat keluarga, primigravida (G1P0), usia > 35, IMT > 30
   ///
   /// Bila belum ada pengukuran tensi (`hasMeasurement == false`), kembalikan
-  /// [RiskLevel.unknown] agar UI tidak menampilkan "Rendah" yang menyesatkan.
+  /// [RiskLevel.unknown] agar Beranda tidak menampilkan "Rendah" menyesatkan.
+  /// Untuk halaman Stratifikasi Risiko pakai `hasMeasurement: true` + `isPrimigravida`
+  /// agar anamnesis tetap dinilai tanpa tensi.
   static RiskLevel computeRiskLevel({
     required int age,
     required HistoryType historyType,
     double? bmi,
     bool hasMeasurement = false,
+    bool isPrimigravida = false,
   }) {
     if (!hasMeasurement) return RiskLevel.unknown;
     final highRisk = historyType == HistoryType.priorPreeclampsia ||
+        historyType == HistoryType.hypertension ||
         age >= 40 ||
         (bmi != null && bmi >= 35);
-    final mediumRisk = historyType == HistoryType.hypertension ||
-        historyType == HistoryType.family ||
+    final mediumRisk = historyType == HistoryType.family ||
+        isPrimigravida ||
         age > 35 ||
         (bmi != null && bmi > 30);
     if (highRisk) return RiskLevel.high;
     if (mediumRisk) return RiskLevel.medium;
     return RiskLevel.low;
   }
+
+  /// Penilaian anamnesis tanpa tensi — untuk halaman Stratifikasi Risiko.
+  static RiskLevel riskFromAnamnesis({
+    required int age,
+    required HistoryType historyType,
+    double? bmi,
+    bool isPrimigravida = false,
+  }) =>
+      computeRiskLevel(
+        age: age,
+        historyType: historyType,
+        bmi: bmi,
+        hasMeasurement: true,
+        isPrimigravida: isPrimigravida,
+      );
 
   /// Indeks Massa Tubuh (IMT) saat ini.
   double? get bmi {
@@ -364,14 +403,42 @@ class Patient {
   /// Faktor risiko yang terpenuhi, untuk ditampilkan ke pengguna.
   List<String> riskFactors() {
     final factors = <String>[];
-    if (historyType != HistoryType.none) factors.add(historyType.label);
+    if (hasPriorPreeclampsia || historyType == HistoryType.priorPreeclampsia) factors.add('Pernah preeklamsia');
+    if (hasChronicHypertension || historyType == HistoryType.hypertension) factors.add('Hipertensi kronis');
+    if (hasFamilyHistory || historyType == HistoryType.family) factors.add('Riwayat keluarga');
+    if (isPrimigravida) factors.add('Hamil pertama (primigravida)');
     if (age > 35) factors.add('Usia > 35 tahun');
     final b = bmi;
     if (b != null && b > 30) factors.add('IMT ${b.toStringAsFixed(1)}');
     return factors;
   }
 
-  /// Rekomendasi konsultasi sesuai kategori risiko (FR-02).
+  bool get isPrimigravida => gravida == 1 && para == 0;
+
+  /// Risk anamnesis (tanpa butuh tensi) — dipakai card Beranda & halaman Stratifikasi.
+  /// Phase 2: pakai 4 bool (has_*) + isPrimigravida agar multi-faktor tidak lossy.
+  RiskLevel get anamnesisRisk {
+    // Jika 4 bool sudah terisi, pakai itu; fallback ke historyType single untuk data lama.
+    final hasPrior = hasPriorPreeclampsia || historyType == HistoryType.priorPreeclampsia;
+    final hasChronic = hasChronicHypertension || historyType == HistoryType.hypertension;
+    final hasFamily = hasFamilyHistory || historyType == HistoryType.family;
+    if (hasPrior || hasChronic || hasFamily || hasPriorPreeclampsia || hasChronicHypertension || hasFamilyHistory) {
+      // Ada explicit bool → hitung via 4 faktor
+      final high = hasPrior || hasChronic || age >= 40 || (bmi != null && bmi! >= 35);
+      final medium = hasFamily || isPrimigravida || age > 35 || (bmi != null && bmi! > 30);
+      if (high) return RiskLevel.high;
+      if (medium) return RiskLevel.medium;
+      return RiskLevel.low;
+    }
+    return Patient.riskFromAnamnesis(
+      age: age,
+      historyType: historyType,
+      bmi: bmi,
+      isPrimigravida: isPrimigravida,
+    );
+  }
+
+  /// Rekomendasi konsultasi sesuai kategori risiko (FR-02) — selaras tabel stratifikasi.
   String get recommendation {
     switch (riskLevel) {
       case RiskLevel.unknown:
@@ -385,7 +452,33 @@ class Patient {
     }
   }
 
+  /// Tindakan medis standar per kategori risiko (untuk tabel stratifikasi).
+  static String actionFor(RiskLevel level) {
+    switch (level) {
+      case RiskLevel.high:
+        return 'Aspirin dosis rendah + pemantauan ketat + kontrol tekanan darah';
+      case RiskLevel.medium:
+        return 'Pertimbangkan aspirin bila ada ≥2 faktor sedang + pantau rutin tensi & protein urine';
+      case RiskLevel.low:
+        return 'Pemantauan rutin tensi & protein urine tiap ANC';
+      case RiskLevel.unknown:
+        return 'Lengkapi skrining untuk menilai';
+    }
+  }
+
   factory Patient.fromMap(Map<String, dynamic> map) {
+    Map<String, dynamic>? decodeDetail(dynamic v) {
+      if (v == null) return null;
+      if (v is Map<String, dynamic>) return v;
+      if (v is String) {
+        try {
+          final d = jsonDecode(v);
+          if (d is Map<String, dynamic>) return d;
+        } catch (_) {}
+      }
+      return null;
+    }
+
     return Patient(
       uuid: map['uuid'] as String,
       name: map['name'] as String,
@@ -419,6 +512,10 @@ class Patient {
       diseaseHistory: map['disease_history'] as String?,
       prePregnancyWeight: (map['pre_pregnancy_weight'] as num?)?.toDouble(),
       prePregnancyHeight: (map['pre_pregnancy_height'] as num?)?.toDouble(),
+      hasPriorPreeclampsia: (map['has_prior_preeclampsia'] as int? ?? 0) == 1,
+      hasChronicHypertension: (map['has_chronic_hypertension'] as int? ?? 0) == 1,
+      hasFamilyHistory: (map['has_family_history'] as int? ?? 0) == 1,
+      riskDetail: decodeDetail(map['risk_detail']),
     );
   }
 
@@ -454,10 +551,16 @@ class Patient {
       'disease_history': diseaseHistory,
       'pre_pregnancy_weight': prePregnancyWeight,
       'pre_pregnancy_height': prePregnancyHeight,
+      'has_prior_preeclampsia': hasPriorPreeclampsia ? 1 : 0,
+      'has_chronic_hypertension': hasChronicHypertension ? 1 : 0,
+      'has_family_history': hasFamilyHistory ? 1 : 0,
+      'is_primigravida': isPrimigravida ? 1 : 0,
+      'risk_detail': riskDetail == null ? null : jsonEncode(riskDetail),
     };
   }
 
   /// Payload untuk `PUT /api/v1/patient` (VPS sudah validasi nik 16 digit, blood_type, dll).
+  /// Phase 2: kirim 4 faktor + is_primigravida + risk_detail (nullable, backward-compat).
   Map<String, dynamic> toSyncPayload() {
     return {
       'patient_uuid': uuid,
@@ -489,11 +592,28 @@ class Patient {
       'disease_history': diseaseHistory,
       'pre_pregnancy_weight': prePregnancyWeight,
       'pre_pregnancy_height': prePregnancyHeight,
+      'has_prior_preeclampsia': hasPriorPreeclampsia,
+      'has_chronic_hypertension': hasChronicHypertension,
+      'has_family_history': hasFamilyHistory,
+      'is_primigravida': isPrimigravida,
+      'risk_detail': riskDetail,
     };
   }
 
   /// Parse dari `GET /api/v1/patient` VPS (snake_case, beberapa field mungkin null).
   factory Patient.fromApi(Map<String, dynamic> m, {required String fallbackUuid}) {
+    Map<String, dynamic>? parseDetail(dynamic v) {
+      if (v == null) return null;
+      if (v is Map<String, dynamic>) return v;
+      if (v is String) {
+        try {
+          final d = jsonDecode(v);
+          if (d is Map<String, dynamic>) return d;
+        } catch (_) {}
+      }
+      return null;
+    }
+
     return Patient(
       uuid: (m['patient_uuid'] ?? m['uuid'] ?? fallbackUuid) as String,
       name: (m['name'] ?? '') as String,
@@ -525,6 +645,17 @@ class Patient {
       diseaseHistory: m['disease_history'] as String?,
       prePregnancyWeight: (m['pre_pregnancy_weight'] as num?)?.toDouble(),
       prePregnancyHeight: (m['pre_pregnancy_height'] as num?)?.toDouble(),
+      hasPriorPreeclampsia: _boolFrom(m['has_prior_preeclampsia']),
+      hasChronicHypertension: _boolFrom(m['has_chronic_hypertension']),
+      hasFamilyHistory: _boolFrom(m['has_family_history']),
+      riskDetail: parseDetail(m['risk_detail']),
     );
+  }
+
+  static bool _boolFrom(dynamic v) {
+    if (v is bool) return v;
+    if (v is int) return v == 1;
+    if (v is String) return v == '1' || v.toLowerCase() == 'true';
+    return false;
   }
 }

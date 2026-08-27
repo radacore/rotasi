@@ -9,6 +9,7 @@ import '../measurement/rotasi_wheel.dart';
 import '../measurement/status_explanation.dart';
 import '../registration/patient.dart';
 import '../registration/patient_repository.dart';
+import '../risk/risk_stratification_page.dart';
 import 'more_page.dart';
 
 /// Beranda / Status Hari Ini.
@@ -92,6 +93,14 @@ class _HomePageState extends State<HomePage> {
     _load();
   }
 
+  Future<void> _openRisk() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => RiskStratificationPage(repository: _repository)),
+    );
+    if (!mounted) return;
+    _load();
+  }
+
   bool get _needsBiodata => _patient?.biodataIncomplete ?? false;
 
   @override
@@ -141,6 +150,8 @@ class _HomePageState extends State<HomePage> {
             ),
           if (_patient != null && _needsBiodata) _IncompleteBiodataCard(onTap: _openBiodata),
           if (_patient != null && _needsBiodata) const SizedBox(height: 12),
+          if (_patient != null) _RiskSummaryCard(patient: _patient!, onTap: _openRisk),
+          if (_patient != null) const SizedBox(height: 12),
           _StatusCard(measurement: _lastMeasurement),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -206,6 +217,68 @@ class _IncompleteBiodataCard extends StatelessWidget {
               ]),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RiskSummaryCard extends StatelessWidget {
+  const _RiskSummaryCard({required this.patient, required this.onTap});
+  final Patient patient;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = patient.anamnesisRisk;
+    final color = switch (level) {
+      RiskLevel.high => AppColors.crisis,
+      RiskLevel.medium => AppColors.stage1,
+      RiskLevel.low => AppColors.normal,
+      RiskLevel.unknown => AppColors.textSecondary,
+    };
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.shield_outlined, color: color, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Stratifikasi Risiko', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                          child: Text(level.label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color)),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(Patient.actionFor(level),
+                              maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+            ],
+          ),
         ),
       ),
     );

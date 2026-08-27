@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../biodata/biodata_page.dart';
 import '../bmi/bmi_page.dart';
 import '../breathing/breathing_page.dart';
+import '../risk/risk_stratification_page.dart';
 import '../midwife/midwife_page.dart';
 import '../referral/referral_page.dart';
 import '../registration/patient_repository.dart';
@@ -84,6 +85,13 @@ class _MorePageState extends State<MorePage> {
             title: 'BMI Ibu Hamil',
             subtitle: 'BMI pra-hamil 18,5–24,9 & batas kenaikan berat.',
             onTap: () => _push(context, BmiPage(repository: patientRepository)),
+          ),
+          const SizedBox(height: 12),
+          _MoreTile(
+            icon: Icons.shield_outlined,
+            title: 'Stratifikasi Risiko',
+            subtitle: 'Skrining preeklamsia — tinggi/sedang/rendah.',
+            onTap: () => _push(context, RiskStratificationPage(repository: patientRepository)),
           ),
           const SizedBox(height: 20),
           const _CategoryTitle('Kesehatan & Kebiasaan'),

@@ -194,10 +194,14 @@ void main() {
 
       expect(find.text('Halo, Sitti,', findRichText: true), findsOneWidget);
       expect(find.text('semoga sehat selalu'), findsOneWidget);
-      expect(
-        find.widgetWithText(ElevatedButton, 'Ukur Tensi'),
-        findsOneWidget,
+      expect(find.text('Stratifikasi Risiko'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Ukur Tensi'),
+        200,
+        scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first,
       );
+      await tester.pumpAndSettle();
+      expect(find.text('Ukur Tensi'), findsOneWidget);
     });
 
     testWidgets('biodata belum lengkap -> card tampil tapi tombol tetap aktif',
@@ -211,6 +215,14 @@ void main() {
       );
 
       expect(find.text('Lengkapi Biodata KIA'), findsOneWidget);
+      expect(find.text('Stratifikasi Risiko'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Ukur Tensi'),
+        200,
+        scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Ukur Tensi'), findsOneWidget);
       final btn = tester.widget<ElevatedButton>(
         find.widgetWithText(ElevatedButton, 'Ukur Tensi'),
       );
@@ -1447,6 +1459,7 @@ void main() {
       expect(find.text('Data & Profil'), findsOneWidget);
       expect(find.text('Biodata KIA'), findsOneWidget);
       expect(find.text('BMI Ibu Hamil'), findsOneWidget);
+      expect(find.text('Stratifikasi Risiko'), findsOneWidget);
       expect(find.text('Kesehatan & Kebiasaan'), findsOneWidget);
       expect(find.text('Latihan Napas'), findsOneWidget);
       // Bantuan & Kontak mungkin di bawah lipat pada viewport kecil — scroll.

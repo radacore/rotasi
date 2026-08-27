@@ -8,7 +8,7 @@ class AppDatabase {
   AppDatabase._();
 
   static const _dbName = 'rotasi.db';
-  static const _dbVersion = 10;
+  static const _dbVersion = 11;
 
   static Database? _db;
 
@@ -107,6 +107,15 @@ class AppDatabase {
       await _addColumnIfMissing(db, 'patients', 'pre_pregnancy_weight', 'REAL');
       await _addColumnIfMissing(db, 'patients', 'pre_pregnancy_height', 'REAL');
     }
+    if (oldVersion < 11) {
+      // Stratifikasi risiko Phase 2 (VPS 2026_08_26 + 2026_08_27 nullable fix)
+      // 4 bool default 0 + risk_detail json nullable; backward-compat device lama.
+      await _addColumnIfMissing(db, 'patients', 'has_prior_preeclampsia', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'has_chronic_hypertension', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'has_family_history', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'is_primigravida', 'INTEGER');
+      await _addColumnIfMissing(db, 'patients', 'risk_detail', 'TEXT');
+    }
   }
 
   static Future<void> _addColumnIfMissing(
@@ -152,6 +161,11 @@ class AppDatabase {
         disease_history TEXT,
         pre_pregnancy_weight REAL,
         pre_pregnancy_height REAL,
+        has_prior_preeclampsia INTEGER NOT NULL DEFAULT 0,
+        has_chronic_hypertension INTEGER NOT NULL DEFAULT 0,
+        has_family_history INTEGER NOT NULL DEFAULT 0,
+        is_primigravida INTEGER NOT NULL DEFAULT 0,
+        risk_detail TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
     ''');

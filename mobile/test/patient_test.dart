@@ -22,10 +22,10 @@ void main() {
       );
     });
 
-    test('hipertensi -> medium', () {
+    test('hipertensi -> high (hipertensi kronis)', () {
       expect(
         Patient.computeRiskLevel(age: 25, historyType: HistoryType.hypertension, hasMeasurement: true),
-        RiskLevel.medium,
+        RiskLevel.high,
       );
     });
 
@@ -208,7 +208,7 @@ void main() {
       );
 
       expect(patient.uuid, isNotEmpty);
-      expect(patient.riskLevel, RiskLevel.medium);
+      expect(patient.riskLevel, RiskLevel.high);
     });
 
     test('tanpa tensi -> unknown, bukan low', () {
