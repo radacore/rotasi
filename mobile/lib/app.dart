@@ -9,6 +9,7 @@ import 'features/registration/patient.dart';
 import 'features/registration/patient_repository.dart';
 import 'features/registration/registration_page.dart';
 import 'features/splash/splash_page.dart';
+import 'features/splash/welcome_intro_page.dart';
 
 class RotasiApp extends StatefulWidget {
   const RotasiApp({
@@ -86,6 +87,7 @@ class _StartupGateState extends State<StartupGate> {
   late final PatientRepository _repository;
   late final BpRepository _bpRepository;
   late final Future<Patient?> _initFuture;
+  bool _introDone = false;
 
   @override
   void initState() {
@@ -100,6 +102,16 @@ class _StartupGateState extends State<StartupGate> {
     ]).then((list) => list[0] as Patient?);
   }
 
+  void _setFabHidden(bool hidden) {
+    if (widget.fabVisibility?.registrationHidden != hidden) {
+      // Jadwalkan setelah build agar tidak trigger ValueListenableBuilder
+      // di dalam FutureBuilder build (setState-during-build).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.fabVisibility?.setRegistrationHidden(hidden);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Patient?>(
@@ -109,14 +121,14 @@ class _StartupGateState extends State<StartupGate> {
           return const SplashPage();
         }
         final hasProfile = snapshot.data != null;
-        // Jadwalkan setelah build agar tidak trigger ValueListenableBuilder
-        // di dalam FutureBuilder build (setState-during-build).
-        final hidden = !hasProfile;
-        if (widget.fabVisibility?.registrationHidden != hidden) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            widget.fabVisibility?.setRegistrationHidden(hidden);
-          });
+        // Intro selamat datang setelah splash, di setiap pembukaan aplikasi.
+        if (!_introDone) {
+          _setFabHidden(true);
+          return WelcomeIntroPage(
+            onContinue: () => setState(() => _introDone = true),
+          );
         }
+        _setFabHidden(!hasProfile);
         return hasProfile
             ? HomeShell(
                 repository: _repository,
