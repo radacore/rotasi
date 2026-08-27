@@ -174,10 +174,10 @@ class _IncompleteBiodataCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.zero,
-      color: AppColors.stage1.withValues(alpha: 0.12),
+      color: AppColors.skyLight.withValues(alpha: 0.55),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.stage1.withValues(alpha: 0.35)),
+        side: BorderSide(color: AppColors.primaryLight.withValues(alpha: 0.30)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -187,14 +187,17 @@ class _IncompleteBiodataCard extends StatelessWidget {
             Container(
               width: 36,
               height: 36,
-              decoration: BoxDecoration(color: AppColors.stage1, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: const Icon(Icons.badge_outlined, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Lengkapi Biodata KIA',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)),
                 const SizedBox(height: 2),
                 Text('NIK, Faskes, golongan darah & BMI pra-hamil diperlukan untuk skrining risiko.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, height: 1.3)),
@@ -206,7 +209,7 @@ class _IncompleteBiodataCard extends StatelessWidget {
                     icon: const Icon(Icons.arrow_forward, size: 16),
                     label: const Text('Lengkapi Sekarang', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.stage1,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -231,6 +234,7 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = measurement;
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: m == null

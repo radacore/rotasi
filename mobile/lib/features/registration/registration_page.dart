@@ -113,7 +113,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.sand,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Form(
           key: _formKey,
