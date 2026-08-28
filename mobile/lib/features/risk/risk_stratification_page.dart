@@ -137,8 +137,9 @@ class _RiskStratificationPageState extends State<RiskStratificationPage> {
         children: [
           Card(
             color: AppColors.skyLight,
+            margin: EdgeInsets.zero,
             child: const Padding(
-              padding: EdgeInsets.all(12),
+              padding: EdgeInsets.all(14),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -158,6 +159,7 @@ class _RiskStratificationPageState extends State<RiskStratificationPage> {
           _ResultCard(level: level, color: color),
           const SizedBox(height: 12),
           Card(
+            margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -214,7 +216,8 @@ class _RiskStratificationPageState extends State<RiskStratificationPage> {
           _ActionTable(level: level),
           const SizedBox(height: 12),
           SizedBox(
-            height: 44,
+            height: 52,
+            width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.save_outlined, size: 18),
@@ -253,14 +256,16 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+    return Card(
+      margin: EdgeInsets.zero,
+      color: color.withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        side: BorderSide(color: color.withValues(alpha: 0.25)),
       ),
-      child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
         children: [
           Container(
             width: 44,
@@ -282,6 +287,7 @@ class _ResultCard extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -372,6 +378,7 @@ class _ActionTable extends StatelessWidget {
       ['Tidak ada riwayat', 'Rendah', 'Pola hidup sehat + ANC rutin'],
     ];
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
