@@ -87,19 +87,53 @@ class BookletRepository {
   /// Cegah seed ganda bila sudah ada booklet (hasil migrasi) yang filenya masih ada.
   Future<Booklet?> ensureSeeded() async {
     final existing = await getAllLocal();
+    ByteData? assetData;
+    try {
+      assetData = await rootBundle.load(_seedAsset);
+    } catch (_) {}
+    if (assetData == null) return null;
+    final assetSize = assetData.lengthInBytes;
+    // Jika seed sudah ada dan ukuran sama -> tidak perlu buat ulang.
+    // Jika ukuran beda (aset baru 9.6M vs lama 10M) -> timpa agar offline default == VPS.
     for (final b in existing) {
       final path = b.localPath;
       if (path == null) continue;
-      if (b.fileUrl == _seedAsset) {
-        if (await File(path).exists()) return null;
-      } else {
-        // Sudah ada booklet dari server yang filenya ada (hasil migrasi seed)
-        // -> jangan buat seed baru agar tidak jadi 2 card.
-        if (await File(path).exists()) return null;
+      if (b.fileUrl == _seedAsset && await File(path).exists()) {
+        if (b.fileSize == assetSize) return null;
+        // size beda -> break untuk timpa di bawah
+        break;
+      }
+    }
+    // Jika sudah ada booklet server yang filenya ada dan ukurannya sama dengan aset baru,
+    // seed akan di-dedup di fetchAll (seedMatchesRemoteBySize) -> jangan buat seed ganda.
+    // Tapi jika belum ada file server, tetap buat/overwrite seed agar offline tersedia.
+    final hasServerFile = existing.any((b) => b.fileUrl != _seedAsset && b.localPath != null);
+    if (hasServerFile) {
+      // cek apakah ada server file yang sudah ada dan size-nya sama dengan aset baru -> tidak perlu seed baru
+      // (fetchAll akan pakai file server). Jika tidak ada yang sama, tetap buat seed.
+      bool serverMatchesAsset = false;
+      for (final b in existing) {
+        if (b.fileUrl == _seedAsset) continue;
+        if (b.fileSize == assetSize && b.localPath != null && await File(b.localPath!).exists()) {
+          serverMatchesAsset = true;
+          break;
+        }
+      }
+      if (serverMatchesAsset) {
+        // Sudah ada server file dengan size sama -> seed tidak perlu (akan dedup)
+        // Tapi jika seed lama beda size, tetap timpa seed agar konsisten
+        Booklet? seed;
+        for (final b in existing) {
+          if (b.fileUrl == _seedAsset) {
+            seed = b;
+            break;
+          }
+        }
+        if (seed != null && seed.fileSize == assetSize) return null;
       }
     }
     try {
-      final data = await rootBundle.load(_seedAsset);
+      final data = assetData;
       final dir = Directory(
         p.join((await _directoryProvider()).path, 'booklets'),
       );
