@@ -103,7 +103,7 @@ class _RiskStratificationPageState extends State<RiskStratificationPage> {
     if (!mounted) return;
     setState(() => _patient = updated);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Skrining tersimpan & tersinkron ke VPS.')),
+      const SnackBar(content: Text('Skrining tersimpan.')),
     );
   }
 
@@ -223,12 +223,6 @@ class _RiskStratificationPageState extends State<RiskStratificationPage> {
               icon: const Icon(Icons.save_outlined, size: 18),
               label: const Text('Simpan Skrining'),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Phase 2: 4 faktor + is_primigravida + risk_detail tersinkron ke VPS. Device lama tanpa has_* tetap kompatibel.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, fontSize: 11),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

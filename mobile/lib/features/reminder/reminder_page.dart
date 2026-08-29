@@ -98,6 +98,7 @@ class _ReminderPageState extends State<ReminderPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 const Card(
+                  margin: EdgeInsets.zero,
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Row(

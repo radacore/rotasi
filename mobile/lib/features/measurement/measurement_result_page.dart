@@ -48,7 +48,7 @@ class _MeasurementResultPageState extends State<MeasurementResultPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Hasil Pengukuran')),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         children: [
           const SizedBox(height: 8),
           Center(
