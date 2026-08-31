@@ -26,21 +26,33 @@ void main() {
       expect(BpStatus.classify(139, 89), BpStatus.stage1);
     });
 
-    test('SYS >=140 ATAU DIA >=90 -> Bahaya (merah) bila <160/110', () {
+    test('SYS 140-159 ATAU DIA 90-120 -> Bahaya (merah) bila <160/>120', () {
       expect(BpStatus.classify(140, 89), BpStatus.crisis);
       expect(BpStatus.classify(139, 90), BpStatus.crisis);
       expect(BpStatus.classify(150, 95), BpStatus.crisis);
+      expect(BpStatus.classify(150, 115), BpStatus.crisis); // DIA 115 masih Bahaya
+      expect(BpStatus.classify(140, 120), BpStatus.crisis); // batas atas Bahaya
     });
 
-    test('SYS >=160 ATAU DIA >=110 -> Darurat (merah tua)', () {
+    test('SYS >=160 ATAU DIA >120 -> Darurat (merah tua)', () {
       expect(BpStatus.classify(160, 90), BpStatus.emergency);
-      expect(BpStatus.classify(140, 110), BpStatus.emergency);
-      expect(BpStatus.classify(170, 120), BpStatus.emergency);
+      expect(BpStatus.classify(140, 121), BpStatus.emergency);
+      expect(BpStatus.classify(150, 120), BpStatus.crisis); // 120 bukan >120 -> masih Bahaya
+      expect(BpStatus.classify(150, 121), BpStatus.emergency);
+      expect(BpStatus.classify(170, 121), BpStatus.emergency);
     });
 
     test('Darurat prioritas di atas Bahaya; Berisiko prioritas di atas Hipotensi', () {
-      expect(BpStatus.classify(85, 85), BpStatus.stage1); // bukan hipotensi
+      expect(BpStatus.classify(85, 85), BpStatus.stage1); // bukan hipotensi (Berisiko dulu)
       expect(BpStatus.classify(165, 55), BpStatus.emergency); // bukan hipotensi
+      expect(BpStatus.classify(159, 121), BpStatus.emergency); // DIA >120 -> Darurat
+    });
+
+    test('di atas 159/120 namun tidak >=160/>120 -> Normal (gap spec client)', () {
+      // Spec client: 160/120 tidak masuk Bahaya (<=159/<=120) maupun Darurat (>120)
+      // classify fallback Normal — dokumentasi gap, bukan bug implementasi
+      expect(BpStatus.classify(160, 120), BpStatus.emergency); // 160 -> Darurat
+      expect(BpStatus.classify(159, 120), BpStatus.crisis);
     });
   });
 

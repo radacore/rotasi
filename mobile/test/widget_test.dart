@@ -563,9 +563,8 @@ void main() {
 
       expect(find.text('Kontak Darurat — Segera Hubungi'), findsNothing);
       expect(find.textContaining('keluarga siaga'), findsNothing);
-      // Card panduan redundan disembunyikan; hanya StatusExplanation (Buku KIA) yang tampil.
-      expect(find.textContaining('hubungi layanan darurat'), findsNothing);
-      expect(find.textContaining('Buku KIA 2025'), findsOneWidget);
+      // StatusExplanation spec client: teks darurat mengandung "ambulans/IGD"
+      expect(find.textContaining('ambulans'), findsOneWidget);
       expect(find.text('Simpan Hasil'), findsOneWidget);
     });
 
@@ -593,12 +592,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Widget 2 (card panduan bold) & widget 3 (Hipotensi — Anjuran) dihapus.
+      // Teks spec client untuk Hipotensi
       expect(
-        find.text('Hipotensi (<90/60 mmHg). Minum cukup (±2,5–3 L/hari), '
-            'jangan bangun mendadak, tidur miring kiri. Jika sering '
-            'pingsan/pusing hebat, segera hubungi bidan.'),
-        findsNothing,
+        find.text('Tekanan darah Anda terlalu rendah. Disarankan untuk minum '
+            'air putih yang cukup, konsumsi makanan asin dalam batas wajar, '
+            'dan hindari berdiri terlalu cepat secara mendadak.'),
+        findsOneWidget,
       );
       expect(find.text('Hipotensi — Anjuran'), findsNothing);
       expect(find.textContaining('HIPOTENSI'), findsOneWidget);

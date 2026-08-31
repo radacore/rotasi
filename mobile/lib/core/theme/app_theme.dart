@@ -18,8 +18,8 @@ abstract final class AppColors {
   static const Color white = Color(0xFFFFFFFF);
 
   /// Status tekanan darah ROTASI — 6 tier (revisi Beranda).
-  /// Hipotensi <90/60 #EE65C1, Normal <120/<80 #79B038, Waspada 120-129/<80 #FFD66E,
-  /// Berisiko 130-139/80-89 #F08E2B, Bahaya ≥140/≥90 #C85858, Darurat ≥160/110 #E23F25
+  /// Hipotensi <90/<60 #EE65C1, Normal <120/<80 #79B038, Waspada 120-129/<80 #FFD66E,
+  /// Berisiko 130-139/80-89 #F08E2B, Bahaya 140-159/90-120 #C85858, Darurat ≥160/>120 #E23F25
   static const Color hypotension = Color(0xFFEE65C1);
   static const Color normal = Color(0xFF79B038);
   static const Color elevated = Color(0xFFFFD66E);

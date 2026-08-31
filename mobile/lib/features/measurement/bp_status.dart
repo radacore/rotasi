@@ -4,8 +4,8 @@ import '../../core/theme/app_theme.dart';
 
 /// Status warna tekanan darah ROTASI — 6 tier (revisi Beranda).
 ///
-/// Hipotensi <90/60 #EE65C1, Normal <120/<80 #79B038, Waspada 120-129/<80 #FFD66E,
-/// Berisiko 130-139/80-89 #F08E2B, Bahaya ≥140/≥90 #C85858, Darurat ≥160/110 #E23F25
+/// Hipotensi <90/<60 #EE65C1, Normal <120/<80 #79B038, Waspada 120-129/<80 #FFD66E,
+/// Berisiko 130-139/80-89 #F08E2B, Bahaya 140-159/90-120 #C85858, Darurat ≥160/>120 #E23F25
 /// Selalu ditampilkan dengan label + ikon + warna (bukan warna saja)
 /// agar aman bagi pengguna buta warna.
 enum BpStatus {
@@ -23,17 +23,21 @@ enum BpStatus {
   final Color color;
   final IconData icon;
 
-  /// Klasifikasi 6 tier:
-  /// Darurat ≥160/110 diperiksa dulu (subset Bahaya), lalu Bahaya ≥140/≥90,
-  /// Berisiko ≥130/80, Waspada 120-129/<80, terakhir Hipotensi <90 ATAU <60,
-  /// sisanya Normal. Hipotensi di akhir agar hipertensi prioritas (mis. 85/85
-  /// tetap Berisiko, bukan Hipotensi).
+  /// Klasifikasi sesuai spesifikasi client (prioritas Darurat dulu):
+  /// 1. Darurat ≥160 ATAU >120, 2. Bahaya 140-159 ATAU 90-120,
+  /// 3. Berisiko 130-139 ATAU 80-89, 4. Hipotensi <90 ATAU <60,
+  /// 5. Waspada 120-129 DAN <80, 6. Normal <120 DAN <80.
   static BpStatus classify(int systolic, int diastolic) {
-    if (systolic >= 160 || diastolic >= 110) return BpStatus.emergency;
-    if (systolic >= 140 || diastolic >= 90) return BpStatus.crisis;
-    if (systolic >= 130 || diastolic >= 80) return BpStatus.stage1;
-    if (systolic >= 120) return BpStatus.elevated;
+    if (systolic >= 160 || diastolic > 120) return BpStatus.emergency;
+    if ((systolic >= 140 && systolic <= 159) || (diastolic >= 90 && diastolic <= 120)) {
+      return BpStatus.crisis;
+    }
+    if ((systolic >= 130 && systolic <= 139) || (diastolic >= 80 && diastolic <= 89)) {
+      return BpStatus.stage1;
+    }
     if (systolic < 90 || diastolic < 60) return BpStatus.hypotension;
+    if (systolic >= 120 && systolic <= 129 && diastolic < 80) return BpStatus.elevated;
+    if (systolic < 120 && diastolic < 80) return BpStatus.normal;
     return BpStatus.normal;
   }
 

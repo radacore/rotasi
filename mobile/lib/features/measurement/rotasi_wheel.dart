@@ -56,7 +56,7 @@ const _startAngles = <double>[
   -math.pi / 3,      // Waspada    : kanan-atas (pusat 330°)
   0,                 // Berisiko   : kanan (pusat 30°)
   math.pi / 3,       // Bahaya     : bawah (pusat 90°)
-  2 * math.pi / 3,   // Darurat    : kiri-atas (pusat 150°)
+  2 * math.pi / 3,   // Darurat    : kiri-atas (pusat 150°, ≥160/>120)
 ];
 
 /// Gap 1.5° antar sektor + sweep agar celah putih halus namun donat tampak tebal.

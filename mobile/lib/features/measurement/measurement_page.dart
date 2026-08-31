@@ -131,11 +131,11 @@ class _MeasurementPageState extends State<MeasurementPage> {
         s >= 50 &&
         s <= 180 &&
         d >= 30 &&
-        d <= 120;
+        d <= 150;
     if (!valid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Periksa nilai tekanan darah (SYS 50–180, DIA 30–120).'),
+          content: Text('Periksa nilai tekanan darah (SYS 50–180, DIA 30–150).'),
         ),
       );
     }

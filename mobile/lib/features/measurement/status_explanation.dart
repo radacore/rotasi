@@ -73,27 +73,27 @@ class _Explanation {
 const _entries = <_Explanation>[
   _Explanation(
     BpStatus.hypotension,
-    'Tekanan darah rendah (<90/60). Cukupkan cairan ±2,5–3 L/hari, jangan bangun mendadak, tidur miring kiri. Jika sering pingsan/pusing hebat, segera hubungi bidan.',
+    'Tekanan darah Anda terlalu rendah. Disarankan untuk minum air putih yang cukup, konsumsi makanan asin dalam batas wajar, dan hindari berdiri terlalu cepat secara mendadak.',
   ),
   _Explanation(
     BpStatus.normal,
-    'Tekanan darah normal. Teruskan pola hidup sehat, makan bergizi, dan kontrol rutin ANC 6x ke bidan sesuai jadwal.',
+    'Luar biasa! Tekanan darah Anda berada dalam kondisi prima. Pertahankan gaya hidup sehat, pola makan gizi seimbang, dan olahraga teratur.',
   ),
   _Explanation(
     BpStatus.elevated,
-    'Tekanan darah mulai naik. Kurangi makanan asin, kelola stres, istirahat cukup, dan pantau rutin. Sampaikan hasil ini ke bidan saat pemeriksaan ANC berikutnya.',
+    'Tekanan darah Anda sedikit di atas normal. Mulai batasi konsumsi garam (natrium) berlebih dan kelola stres dengan baik untuk mencegah kenaikan lebih lanjut.',
   ),
   _Explanation(
     BpStatus.stage1,
-    'Tekanan darah sudah masuk Hipertensi Derajat 1. Periksa ulang rutin dan segera berkonsultasi ke Puskesmas.',
+    'Anda memasuki kategori Hipertensi Tingkat 1. Sangat disarankan untuk memantau tekanan darah secara berkala dalam 1 minggu ke depan dan berkonsultasi dengan dokter.',
   ),
   _Explanation(
     BpStatus.crisis,
-    'Tekanan darah sangat tinggi ≥140/90 mmHg (Hipertensi Derajat 2, Buku KIA 2025). Ibu harus segera ke Puskesmas atau RS, terutama jika disertai gejala berat.',
+    'Tekanan darah Anda tinggi (Hipertensi Tingkat 2). Anda membutuhkan evaluasi medis dari dokter dan kemungkinan terapi obat penurun tensi untuk mencegah komplikasi.',
   ),
   _Explanation(
     BpStatus.emergency,
-    'DARURAT ≥160/110 mmHg — risiko kejang/stroke. Segera ke IGD/RS & hubungi 119 (Buku KIA 2025).',
+    'PERINGATAN: Tekanan darah Anda berada di tingkat krisis! Jika Anda merasakan nyeri dada, sesak napas, sakit kepala hebat, atau gangguan penglihatan, segera hubungi ambulans atau pergi ke IGD terdekat.',
   ),
 ];
 

@@ -122,7 +122,7 @@ class _TrendPageState extends State<TrendPage> {
     }
 
     if (emergencyDays > 0) {
-      return 'Ada $emergencyDays hari kategori Darurat (≥160/110). Segera ke IGD/RS & hubungi 119.';
+      return 'Ada $emergencyDays hari kategori Darurat (≥160/>120). Segera ke IGD/RS & hubungi 119.';
     }
     if (crisisDays > 0) {
       return 'Ada $crisisDays hari masuk kategori Bahaya. '
@@ -306,8 +306,8 @@ class _TrendPageState extends State<TrendPage> {
           ChartBand(min: 0, max: 60, color: AppColors.hypotension),
           ChartBand(min: 60, max: 80, color: AppColors.normal),
           ChartBand(min: 80, max: 90, color: AppColors.stage1),
-          ChartBand(min: 90, max: 110, color: AppColors.crisis),
-          ChartBand(min: 110, max: 999, color: AppColors.emergency),
+          ChartBand(min: 90, max: 120, color: AppColors.crisis),
+          ChartBand(min: 120, max: 999, color: AppColors.emergency),
         ],
         series: [
           TrendSeries(name: 'Catatan', color: AppColors.primaryLight, values: dia),
