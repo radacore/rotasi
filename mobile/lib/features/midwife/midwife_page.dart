@@ -34,8 +34,9 @@ class MidwifePage extends StatefulWidget {
 
 class _MidwifePageState extends State<MidwifePage> {
   late final MidwifeRepository _repository;
-  // Fallback 8 bidan = sama dengan VPS https://rotasi.my.id/midwives (offline-first)
+  // Fallback 9 bidan = sama dengan VPS https://rotasi.my.id/midwives + asset (offline-first)
   List<Midwife> _midwives = const [
+    Midwife(id: 12, name: 'Bidan Emy', role: 'Bidan', phone: '085298130870'),
     Midwife(id: 1, name: 'Dwi Luqsianti, A.Md.Keb', role: 'Bidan', phone: '081227088315'),
     Midwife(id: 5, name: 'Nurafni Oktavia, A.Md.Keb', role: 'Bidan', phone: '085298805432'),
     Midwife(id: 6, name: 'Mariama, A.Md.Keb', role: 'Bidan', phone: '085298130870'),

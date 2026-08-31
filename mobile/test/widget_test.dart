@@ -1095,8 +1095,9 @@ void main() {
       final repo = FakeMidwifeRepository(midwives: const []);
       await pumpMidwife(tester, repo);
 
-      // Fallback offline-first: 8 bidan VPS tetap tampil bila belum pernah sinkron.
+      // Fallback offline-first: 9 bidan VPS tetap tampil bila belum pernah sinkron (tambah Bidan Emy).
       expect(find.text('Belum ada daftar bidan'), findsNothing);
+      expect(find.text('Bidan Emy'), findsOneWidget);
       expect(find.text('Dwi Luqsianti, A.Md.Keb'), findsOneWidget);
       expect(find.text('Zulpina, A.Md.Keb'), findsOneWidget);
     });

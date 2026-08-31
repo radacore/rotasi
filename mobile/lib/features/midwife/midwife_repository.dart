@@ -18,7 +18,7 @@ class MidwifeRepository {
   static const _updatedAtKey = 'midwives_updated_at';
   static const _seedAsset = 'assets/data/midwives.json';
   static const _seedVersionKey = 'midwives_seed_version';
-  static const _seedVersion = 3;
+  static const _seedVersion = 4;
 
   final ApiClient _api;
 
@@ -103,13 +103,14 @@ class MidwifeRepository {
         return null;
       }
     }
-    // Migrasi seed v3: 8 bidan VPS. HP lama cache 2/3 (Dwi/Nurafni old spelling)
-    // atau 1 (Lusi) belum ikut 6 baru → segarkan ke asset 8 bila belum
-    // versioned dari server (updated_at kosong). Intent admin (updatedAt != null) dihormati.
-    // Hati-hati: cache dari server (mis. test Bidan Rini/Sari) jangan dimigrasi.
+    // Migrasi seed v4: 9 bidan (tambah Bidan Emy). v3 = 8 bidan, v2/v1 = 1-3 bidan
+    // lama (Lusi/Dwi Luasianti dsb). HP lama cache 8 tanpa Emy atau 1-3 belum ikut
+    // 6 baru → segarkan ke asset 9 bila belum versioned dari server (updated_at kosong).
+    // Intent admin (updatedAt != null) dihormati. Cache server arbitrary (mis. test
+    // Bidan Rini/Sari) jangan dimigrasi kecuali terdeteksi old seed.
     final seededVer = prefs.getInt(_seedVersionKey);
-    final needsV3Migrate = seededVer == null || seededVer < _seedVersion;
-    if (needsV3Migrate) {
+    final needsMigrate = seededVer == null || seededVer < _seedVersion;
+    if (needsMigrate) {
       bool migrated = false;
       final cachedRaw = prefs.getString(_cacheKey);
       if (cachedRaw != null) {
@@ -118,7 +119,6 @@ class MidwifeRepository {
           final len = d.length;
           final updatedAt = prefs.getString(_updatedAtKey);
           final isAdminIntent = updatedAt != null && updatedAt.isNotEmpty;
-          // Hanya migrasi bila terlihat seperti seed lama (bukan data server arbitrary)
           final containsOldSeedName = d.any((e) {
             final n = (e as Map<String, dynamic>)['name'] as String? ?? '';
             return n == 'Lusi' ||
@@ -126,8 +126,13 @@ class MidwifeRepository {
                 n.contains('Nurafni Oktavia. A') || // old dot spelling
                 n == 'Dwi Luasianti A.Md.keb';
           });
+          final hasEmy =
+              d.any((e) => ((e as Map<String, dynamic>)['name'] as String? ?? '').contains('Bidan Emy'));
+          // Migrasi bila old seed ATAU cache 8 tanpa Emy (seed v3 belum Emy)
           final looksOld = !isAdminIntent &&
-              (containsOldSeedName || (len < 8 && len > 0 && len <= 3 && d.any((e) => ((e as Map)['name'] as String).contains('Dwi') || ((e as Map)['name'] as String).contains('Nurafni'))));
+              (containsOldSeedName ||
+                  (!hasEmy && len == 8) ||
+                  (len < 8 && len > 0 && len <= 3 && d.any((e) => ((e as Map)['name'] as String).contains('Dwi') || ((e as Map)['name'] as String).contains('Nurafni'))));
           if (looksOld) {
             try {
               final raw = await rootBundle
@@ -137,7 +142,7 @@ class MidwifeRepository {
               final midwives = data
                   .map((e) => Midwife.fromJson(e as Map<String, dynamic>))
                   .toList();
-              if (midwives.length == 8) {
+              if (midwives.length == 9) {
                 await prefs
                     .setString(
                       _cacheKey,
