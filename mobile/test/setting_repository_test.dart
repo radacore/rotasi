@@ -36,6 +36,10 @@ String _json({String phone = '119'}) => jsonEncode({
       'data': {
         'app_name': 'ROTASI',
         'emergency_phone': phone,
+        'ambulance_phone': phone,
+        'homecare_phone': '112',
+        'puskesmas_phone': '081343677797',
+        'puskesmas_phone_alt': '0812417777718',
         'puskesmas_name': 'Puskesmas Sehat',
         'puskesmas_address': 'Jl. Merdeka 1',
         'default_wa_message': 'Halo bidan',

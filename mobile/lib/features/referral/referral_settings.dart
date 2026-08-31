@@ -3,6 +3,10 @@ class ReferralSettings {
   const ReferralSettings({
     this.appName = '',
     this.emergencyPhone = '',
+    this.ambulancePhone = '',
+    this.homecarePhone = '',
+    this.puskesmasPhone = '',
+    this.puskesmasPhoneAlt = '',
     this.puskesmasName = '',
     this.puskesmasAddress = '',
     this.defaultWaMessage = '',
@@ -12,6 +16,10 @@ class ReferralSettings {
 
   final String appName;
   final String emergencyPhone;
+  final String ambulancePhone;
+  final String homecarePhone;
+  final String puskesmasPhone;
+  final String puskesmasPhoneAlt;
   final String puskesmasName;
   final String puskesmasAddress;
   final String defaultWaMessage;
@@ -28,6 +36,12 @@ class ReferralSettings {
     return ReferralSettings(
       appName: json['app_name'] as String? ?? '',
       emergencyPhone: json['emergency_phone'] as String? ?? '',
+      ambulancePhone: json['ambulance_phone'] as String? ??
+          json['emergency_phone'] as String? ??
+          '',
+      homecarePhone: json['homecare_phone'] as String? ?? '',
+      puskesmasPhone: json['puskesmas_phone'] as String? ?? '',
+      puskesmasPhoneAlt: json['puskesmas_phone_alt'] as String? ?? '',
       puskesmasName: json['puskesmas_name'] as String? ?? '',
       puskesmasAddress: json['puskesmas_address'] as String? ?? '',
       defaultWaMessage: json['default_wa_message'] as String? ?? '',
@@ -41,6 +55,10 @@ class ReferralSettings {
   Map<String, dynamic> toJson() => {
         'app_name': appName,
         'emergency_phone': emergencyPhone,
+        'ambulance_phone': ambulancePhone,
+        'homecare_phone': homecarePhone,
+        'puskesmas_phone': puskesmasPhone,
+        'puskesmas_phone_alt': puskesmasPhoneAlt,
         'puskesmas_name': puskesmasName,
         'puskesmas_address': puskesmasAddress,
         'default_wa_message': defaultWaMessage,

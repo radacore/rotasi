@@ -1,6 +1,10 @@
 {
   "app_name": "ROTASI",
   "emergency_phone": "119",
+  "ambulance_phone": "119",
+  "homecare_phone": "112",
+  "puskesmas_phone": "081343677797",
+  "puskesmas_phone_alt": "0812417777718",
   "puskesmas_name": "Puskesmas Barombong",
   "puskesmas_address": "Jl. Perjanjian Bongaya, Barombong, Kec. Tamalate, Kota Makassar, Sulawesi Selatan 90225",
   "default_wa_message": "",

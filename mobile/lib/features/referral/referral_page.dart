@@ -27,7 +27,13 @@ class _ReferralPageState extends State<ReferralPage> {
   ReferralSettings? _settings = const ReferralSettings(
     appName: 'ROTASI',
     emergencyPhone: '119',
+    ambulancePhone: '119',
+    homecarePhone: '112',
+    puskesmasPhone: '081343677797',
+    puskesmasPhoneAlt: '0812417777718',
     puskesmasName: 'Puskesmas Barombong',
+    puskesmasAddress:
+        'Jl. Perjanjian Bongaya, Barombong, Kec. Tamalate, Kota Makassar, Sulawesi Selatan 90225',
     rules: ReferralRules(
       persistentColors: ['orange', 'red'],
       symptomCheckTrigger: true,
@@ -318,7 +324,6 @@ class _ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasEmergency = settings.emergencyPhone.isNotEmpty;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -333,88 +338,125 @@ class _ContactCard extends StatelessWidget {
                     fontSize: 14,
                   ),
             ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.local_hospital_outlined,
-                    color: AppColors.crisis, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Darurat / Ambulans',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text(
-                        hasEmergency
-                            ? settings.emergencyPhone
-                            : 'Belum diatur pengelola',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (hasEmergency) ...[
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: () => onCall(settings.emergencyPhone),
-                    icon: const Icon(Icons.call, size: 16),
-                    label: const Text('Panggil',
-                        style: TextStyle(fontSize: 13)),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 36),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                ],
-              ],
+            const SizedBox(height: 10),
+            _PhoneRow(
+              label: 'Call Center Ambulans Makassar',
+              phone: settings.ambulancePhone.isNotEmpty
+                  ? settings.ambulancePhone
+                  : settings.emergencyPhone,
+              onCall: onCall,
             ),
-            const Divider(height: 16),
-            if (settings.puskesmasName.isNotEmpty)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.local_hospital_outlined,
-                      color: AppColors.primary, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          settings.puskesmasName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                        if (settings.puskesmasAddress.isNotEmpty)
-                          Text(
-                            settings.puskesmasAddress,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                      height: 1.3,
-                                    ),
-                          ),
-                      ],
+            const SizedBox(height: 10),
+            _PhoneRow(
+              label: "Home Care Dottoro'ta",
+              phone: settings.homecarePhone,
+              onCall: onCall,
+            ),
+            const SizedBox(height: 10),
+            _PhoneRow(
+              label: 'Puskesmas Barombong - Telp 1',
+              phone: settings.puskesmasPhone,
+              onCall: onCall,
+            ),
+            const SizedBox(height: 10),
+            _PhoneRow(
+              label: 'Puskesmas Barombong - Telp 2',
+              phone: settings.puskesmasPhoneAlt,
+              onCall: onCall,
+            ),
+            if (settings.puskesmasName.isNotEmpty) ...[
+              const Divider(height: 20),
+              Text(
+                'Nama Puskesmas',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                ],
               ),
+              const SizedBox(height: 2),
+              Text(
+                settings.puskesmasName,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ],
+            if (settings.puskesmasAddress.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Alamat Puskesmas',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                settings.puskesmasAddress,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PhoneRow extends StatelessWidget {
+  const _PhoneRow({
+    required this.label,
+    required this.phone,
+    required this.onCall,
+  });
+
+  final String label;
+  final String phone;
+  final Future<void> Function(String phone) onCall;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhone = phone.isNotEmpty;
+    return Row(
+      children: [
+        const Icon(Icons.call_outlined, color: AppColors.crisis, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 13)),
+              Text(
+                hasPhone ? phone : 'Belum diatur pengelola',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        if (hasPhone) ...[
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            onPressed: () => onCall(phone),
+            icon: const Icon(Icons.call, size: 16),
+            label: const Text('Panggil', style: TextStyle(fontSize: 13)),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

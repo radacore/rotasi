@@ -987,6 +987,10 @@ void main() {
       final repo = FakeSettingRepository(
         settings: ReferralSettings(
           emergencyPhone: '119',
+          ambulancePhone: '119',
+          homecarePhone: '112',
+          puskesmasPhone: '081343677797',
+          puskesmasPhoneAlt: '0812417777718',
           puskesmasName: 'Puskesmas Sehat',
           puskesmasAddress: 'Jl. Merdeka 1',
           rules: const ReferralRules(
@@ -1012,10 +1016,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Gerakan janin'), findsOneWidget);
-      expect(find.text('119'), findsOneWidget);
+      expect(find.text('Call Center Ambulans Makassar'), findsOneWidget);
+      expect(find.text("Home Care Dottoro'ta"), findsOneWidget);
+      expect(find.text('Puskesmas Barombong - Telp 1'), findsOneWidget);
+      expect(find.text('Puskesmas Barombong - Telp 2'), findsOneWidget);
+      expect(find.text('081343677797'), findsOneWidget);
+      expect(find.text('0812417777718'), findsOneWidget);
+      expect(find.text('Nama Puskesmas'), findsOneWidget);
+      expect(find.text('Alamat Puskesmas'), findsOneWidget);
       expect(find.text('Puskesmas Sehat'), findsOneWidget);
 
-      await tester.tap(find.text('Panggil'));
+      await tester.tap(find.text('Panggil').first);
       await tester.pumpAndSettle();
       expect(calls, ['tel:119']);
     });

@@ -17,7 +17,7 @@ class SettingRepository {
   static const _cacheKey = 'referral_settings_cache';
   static const _seedAsset = 'assets/data/referral_settings.json';
   static const _seedVersionKey = 'referral_settings_seed_version';
-  static const _seedVersion = 2;
+  static const _seedVersion = 3;
 
   final ApiClient _api;
 
@@ -116,22 +116,29 @@ class SettingRepository {
         return null;
       }
     }
-    // Migrasi seed v2: alamat puskesmas di cache lama kosong → segarkan dari asset terbaru
+    // Migrasi seed v3: nomor ambulans/homecare/puskesmas kosong → segarkan dari asset terbaru
     final seededVer = prefs.getInt(_seedVersionKey);
-    if (seededVer == null) {
+    if (seededVer == null || seededVer < _seedVersion) {
       final cachedRaw = prefs.getString(_cacheKey);
       if (cachedRaw != null) {
         try {
           final d = jsonDecode(cachedRaw) as Map<String, dynamic>;
           final existing = ReferralSettings.fromJson(d);
-          if (existing.puskesmasAddress.isEmpty) {
+          final needsMigration = existing.ambulancePhone.isEmpty ||
+              existing.homecarePhone.isEmpty ||
+              existing.puskesmasPhone.isEmpty ||
+              existing.puskesmasPhoneAlt.isEmpty ||
+              existing.puskesmasAddress.isEmpty;
+          if (needsMigration) {
             try {
               final raw = await rootBundle
                   .loadString(_seedAsset)
                   .timeout(const Duration(seconds: 2));
               final latest = ReferralSettings.fromJson(
                   jsonDecode(raw) as Map<String, dynamic>);
-              if (latest.puskesmasAddress.isNotEmpty) {
+              final shouldRefresh = latest.puskesmasAddress.isNotEmpty ||
+                  latest.ambulancePhone.isNotEmpty;
+              if (shouldRefresh) {
                 await prefs
                     .setString(_cacheKey, jsonEncode(latest.toJson()))
                     .timeout(const Duration(seconds: 2));
