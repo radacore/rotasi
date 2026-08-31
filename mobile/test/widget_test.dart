@@ -1352,10 +1352,7 @@ void main() {
       expect(scheduler.scheduled.last.hour, 18);
       expect(scheduler.scheduled.last.minute, 0);
       expect(repo.saved!.enabled, isTrue);
-      expect(
-        find.text('Pengingat diaktifkan untuk pagi & sore.'),
-        findsOneWidget,
-      );
+      expect(find.text('Pengingat disimpan.'), findsOneWidget);
     });
 
     testWidgets('menggunakan waktu yang sudah disimpan sebelumnya',
@@ -1393,9 +1390,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(scheduler.scheduled, isEmpty);
-      expect(scheduler.cancelled, containsAll([1, 2]));
+      expect(scheduler.cancelled, containsAll([1, 2, 3]));
       expect(repo.saved!.enabled, isFalse);
-      expect(find.text('Pengingat dimatikan.'), findsOneWidget);
+      expect(find.text('Semua pengingat dimatikan.'), findsOneWidget);
     });
   });
 

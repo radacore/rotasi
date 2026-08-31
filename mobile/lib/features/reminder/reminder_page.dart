@@ -21,6 +21,7 @@ class ReminderPage extends StatefulWidget {
 class _ReminderPageState extends State<ReminderPage> {
   static const _morningId = 1;
   static const _eveningId = 2;
+  static const _ancId = 3;
 
   late final ReminderRepository _repository;
   late final NotificationScheduler _scheduler;
@@ -41,15 +42,21 @@ class _ReminderPageState extends State<ReminderPage> {
     setState(() => _settings = settings ?? const ReminderSettings());
   }
 
-  Future<void> _pickTime({required bool morning}) async {
-    final current = morning ? _settings!.morning : _settings!.evening;
+  Future<void> _pickTime({required bool morning, required bool anc}) async {
+    final current = anc
+        ? _settings!.ancTime
+        : (morning ? _settings!.morning : _settings!.evening);
     final picked = await showTimePicker(context: context, initialTime: current);
     if (picked == null || !mounted) return;
     setState(() {
-      _settings = _settings!.copyWith(
-        morning: morning ? picked : _settings!.morning,
-        evening: morning ? _settings!.evening : picked,
-      );
+      if (anc) {
+        _settings = _settings!.copyWith(ancTime: picked);
+      } else {
+        _settings = _settings!.copyWith(
+          morning: morning ? picked : _settings!.morning,
+          evening: morning ? _settings!.evening : picked,
+        );
+      }
     });
   }
 
@@ -75,14 +82,26 @@ class _ReminderPageState extends State<ReminderPage> {
       await _scheduler.cancel(_morningId);
       await _scheduler.cancel(_eveningId);
     }
+    if (settings.ancEnabled) {
+      await _scheduler.schedule(
+        id: _ancId,
+        title: 'Ceklis 10T ANC',
+        body: 'Jangan lupa ceklis 10T ANC hari ini — cek dengan bidan bila jadwal kunjungan tiba.',
+        hour: settings.ancTime.hour,
+        minute: settings.ancTime.minute,
+      );
+    } else {
+      await _scheduler.cancel(_ancId);
+    }
     await _repository.save(settings);
     if (!mounted) return;
     setState(() => _saving = false);
+    final hasAny = settings.enabled || settings.ancEnabled;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(settings.enabled
-            ? 'Pengingat diaktifkan untuk pagi & sore.'
-            : 'Pengingat dimatikan.'),
+        content: Text(hasAny
+            ? 'Pengingat disimpan.'
+            : 'Semua pengingat dimatikan.'),
       ),
     );
   }
@@ -136,7 +155,7 @@ class _ReminderPageState extends State<ReminderPage> {
                         .formatTimeOfDay(settings.morning),
                   ),
                   trailing: const Icon(Icons.edit_outlined),
-                  onTap: () => _pickTime(morning: true),
+                  onTap: () => _pickTime(morning: true, anc: false),
                 ),
                 ListTile(
                   enabled: settings.enabled && !_saving,
@@ -147,7 +166,29 @@ class _ReminderPageState extends State<ReminderPage> {
                         .formatTimeOfDay(settings.evening),
                   ),
                   trailing: const Icon(Icons.edit_outlined),
-                  onTap: () => _pickTime(morning: false),
+                  onTap: () => _pickTime(morning: false, anc: false),
+                ),
+                const Divider(height: 32),
+                SwitchListTile(
+                  value: settings.ancEnabled,
+                  onChanged: _saving
+                      ? null
+                      : (v) => setState(
+                          () => _settings = settings.copyWith(ancEnabled: v)),
+                  title: const Text('Pengingat ceklis 10T ANC'),
+                  subtitle: const Text('Pengingat harian untuk ceklis ANC'),
+                  secondary: const Icon(Icons.checklist_outlined),
+                ),
+                ListTile(
+                  enabled: settings.ancEnabled && !_saving,
+                  leading: const Icon(Icons.event_outlined),
+                  title: const Text('Waktu ceklis ANC'),
+                  subtitle: Text(
+                    MaterialLocalizations.of(context)
+                        .formatTimeOfDay(settings.ancTime),
+                  ),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: () => _pickTime(morning: false, anc: true),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
