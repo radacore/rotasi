@@ -126,20 +126,31 @@ class _MeasurementPageState extends State<MeasurementPage> {
   bool _validate(TextEditingController sys, TextEditingController dia) {
     final s = int.tryParse(sys.text);
     final d = int.tryParse(dia.text);
-    final valid = s != null &&
-        d != null &&
-        s >= 50 &&
-        s <= 180 &&
-        d >= 30 &&
-        d <= 150;
-    if (!valid) {
+    if (s == null || s < 50 || s > 380) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Periksa nilai tekanan darah (SYS 50–180, DIA 30–150).'),
+          content: Text('Error: Angka sistolik tidak masuk akal dalam parameter medis.'),
         ),
       );
+      return false;
     }
-    return valid;
+    if (d == null || d < 30 || d > 360) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Angka diastolik tidak masuk akal dalam parameter medis.'),
+        ),
+      );
+      return false;
+    }
+    if (d >= s) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Tekanan diastolik (bawah) tidak boleh lebih besar atau sama dengan sistolik (atas).'),
+        ),
+      );
+      return false;
+    }
+    return true;
   }
 
   @override

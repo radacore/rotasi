@@ -486,12 +486,41 @@ void main() {
       final bpRepo = FakeBpRepository();
       await pumpMeasurement(tester, bpRepo);
 
+      // 999 > 380 -> pesan sistolik verbatim client
       await tester.enterText(find.byType(TextField).at(0), '999');
       await tester.enterText(find.byType(TextField).at(1), '80');
       await tester.tap(find.text('Simpan Pengukuran 1'));
       await tester.pump();
 
-      expect(find.textContaining('Periksa nilai tekanan darah'), findsOneWidget);
+      expect(find.textContaining('Angka sistolik tidak masuk akal'), findsOneWidget);
+      expect(bpRepo.saveCount, 0);
+    });
+
+    testWidgets('diastolik >= sistolik -> snackbar error diastolik >= sistolik',
+        (tester) async {
+      final bpRepo = FakeBpRepository();
+      await pumpMeasurement(tester, bpRepo);
+
+      await tester.enterText(find.byType(TextField).at(0), '120');
+      await tester.enterText(find.byType(TextField).at(1), '120');
+      await tester.tap(find.text('Simpan Pengukuran 1'));
+      await tester.pump();
+
+      expect(find.textContaining('diastolik (bawah) tidak boleh'), findsOneWidget);
+      expect(bpRepo.saveCount, 0);
+    });
+
+    testWidgets('diastolik di luar rentang -> snackbar error diastolik',
+        (tester) async {
+      final bpRepo = FakeBpRepository();
+      await pumpMeasurement(tester, bpRepo);
+
+      await tester.enterText(find.byType(TextField).at(0), '120');
+      await tester.enterText(find.byType(TextField).at(1), '400');
+      await tester.tap(find.text('Simpan Pengukuran 1'));
+      await tester.pump();
+
+      expect(find.textContaining('Angka diastolik tidak masuk akal'), findsOneWidget);
       expect(bpRepo.saveCount, 0);
     });
 
