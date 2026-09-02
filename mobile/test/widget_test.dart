@@ -1047,10 +1047,8 @@ void main() {
       expect(find.textContaining('Gerakan janin'), findsOneWidget);
       expect(find.text('Call Center Ambulans Makassar'), findsOneWidget);
       expect(find.text("Home Care Dottoro'ta"), findsOneWidget);
-      expect(find.text('Puskesmas Barombong - Telp 1'), findsOneWidget);
-      expect(find.text('Puskesmas Barombong - Telp 2'), findsOneWidget);
-      expect(find.text('081343677797'), findsOneWidget);
-      expect(find.text('0812417777718'), findsOneWidget);
+      expect(find.text('Puskesmas Barombong - Telp 1'), findsNothing);
+      expect(find.text('Puskesmas Barombong - Telp 2'), findsNothing);
       expect(find.text('Nama Puskesmas'), findsOneWidget);
       expect(find.text('Alamat Puskesmas'), findsOneWidget);
       expect(find.text('Puskesmas Sehat'), findsOneWidget);

@@ -352,18 +352,6 @@ class _ContactCard extends StatelessWidget {
               phone: settings.homecarePhone,
               onCall: onCall,
             ),
-            const SizedBox(height: 10),
-            _PhoneRow(
-              label: 'Puskesmas Barombong - Telp 1',
-              phone: settings.puskesmasPhone,
-              onCall: onCall,
-            ),
-            const SizedBox(height: 10),
-            _PhoneRow(
-              label: 'Puskesmas Barombong - Telp 2',
-              phone: settings.puskesmasPhoneAlt,
-              onCall: onCall,
-            ),
             if (settings.puskesmasName.isNotEmpty) ...[
               const Divider(height: 20),
               Text(
